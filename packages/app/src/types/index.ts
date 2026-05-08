@@ -1,0 +1,91 @@
+// Bopomofo data shape — straight from BOPOMOFO_MENU_SPEC.md §6.
+
+export type TagStyle = "neutral" | "positive" | "allergen";
+
+export type Tag = {
+  label: string;
+  style: TagStyle;
+};
+
+export type Badge =
+  | { kind: "calories"; value: number }
+  | { kind: "lactose-free" };
+
+export type Variant = {
+  id: string; // matches another Drink id
+  thumbnail: string;
+};
+
+export type CupSpec = {
+  label: string; // e.g. "500mL Standard"
+  sizeMl: number;
+  illustration: string; // line-art cup
+  isDefault?: boolean;
+};
+
+export type Customization = {
+  label: string;
+  defaultValue: string;
+  options: string[];
+};
+
+export type CrossSectionCallout = {
+  label: string;
+  eyebrow?: string; // "No Artificial Flavor", etc.
+  yPercent: number; // 0..100 — where the leader line meets the layer
+};
+
+export type ExploreSection = {
+  name: string;
+  description: string;
+  allergyReminder?: string;
+  photoUri: string; // photo half (left of vertical split)
+  illustrationUri: string; // illustration half (right of vertical split)
+  callouts: CrossSectionCallout[];
+};
+
+export type Nutrition = {
+  energy: number | null;
+  protein: number | null;
+  carbs: number | null;
+  fat: number | null;
+  teaPolyphenols: number | null;
+  caffeineMgPerCup: number;
+  caffeineLevel: "green" | "yellow" | "red";
+};
+
+export type Category =
+  | "in-season"
+  | "staff-picks"
+  | "matcha"
+  | "superfood-fruit"
+  | "teamix-tea"
+  | "bobo-milk-tea"
+  | "extra";
+
+export type DrinkStub = {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  badge?: Badge;
+  category: Category;
+};
+
+export type Drink = DrinkStub & {
+  tags: Tag[];
+  hasRecipeLink: boolean;
+  description: string;
+  variants?: Variant[];
+  cupSpecs?: CupSpec[];
+  customizations: Customization[];
+  hasMoreOptions: boolean;
+  explore: ExploreSection;
+  nutrition: Nutrition;
+};
+
+export type Section = {
+  id: Category;
+  label: string;
+  drinks: DrinkStub[];
+};

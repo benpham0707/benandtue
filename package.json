@@ -1,33 +1,22 @@
 {
-  "name": "benandtue",
+  "name": "benandtue-monorepo",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.0.8",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@radix-ui/react-slot": "^1.2.4",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "framer-motion": "^12.23.24",
-    "lucide-react": "^0.554.0",
-    "next": "16.0.4",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "tailwind-merge": "^3.4.0"
+    "web": "pnpm --filter web dev",
+    "web:build": "pnpm --filter web build",
+    "mobile": "pnpm --filter mobile start",
+    "ios": "pnpm --filter mobile ios",
+    "android": "pnpm --filter mobile android",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r exec rm -rf node_modules .next .expo .turbo dist && rm -rf node_modules"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.0.4",
-    "tailwindcss": "^4",
-    "tw-animate-css": "^1.4.0",
-    "typescript": "^5"
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
