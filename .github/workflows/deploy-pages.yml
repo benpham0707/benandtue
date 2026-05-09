@@ -28,14 +28,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22.13.0
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Install pnpm
+        run: npm install -g pnpm@11.0.8
 
-      - name: Activate pnpm
-        run: corepack prepare pnpm@11.0.8 --activate
+      - name: Verify toolchain
+        run: |
+          node --version
+          pnpm --version
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
