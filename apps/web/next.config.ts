@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+const repoName = "benandtue";
+const isGithubActions = process.env.GITHUB_ACTIONS === "true";
+
 const transpiledPackages = [
   "app",
   "react-native",
@@ -11,6 +14,13 @@ const transpiledPackages = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "export",
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+  basePath: isGithubActions ? `/${repoName}` : "",
+  assetPrefix: isGithubActions ? `/${repoName}/` : undefined,
   transpilePackages: transpiledPackages,
   turbopack: {
     resolveAlias: {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LoadingSequence from "@/components/LoadingSequence";
@@ -96,7 +97,7 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.6 }}
                   >
-                    <a
+                    <Link
                       href="/gallery"
                       className="group relative px-8 py-4 bg-white text-black font-medium rounded-full overflow-hidden transition-transform hover:scale-105"
                     >
@@ -110,13 +111,13 @@ export default function Home() {
                       <span className="absolute inset-0 z-10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
                         View Projects
                       </span>
-                    </a>
-                    <a
+                    </Link>
+                    <Link
                       href="/contact"
                       className="px-8 py-4 border border-white/20 text-white font-medium rounded-full hover:bg-white/5 transition-colors"
                     >
                       Get in Touch
-                    </a>
+                    </Link>
                   </motion.div>
                 </div>
 

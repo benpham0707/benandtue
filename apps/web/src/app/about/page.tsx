@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import Navigation from "@/components/Navigation";
@@ -308,7 +309,7 @@ export default function AboutPage() {
           <p className="text-white/60 text-xl mb-12 max-w-xl mx-auto">
             Whether it&apos;s a wild idea or a refined concept, we&apos;re here to help bring it to life.
           </p>
-          <a
+          <Link
             href="/contact"
             className="inline-flex items-center gap-3 px-10 py-5 bg-white text-black font-medium rounded-full hover:scale-105 transition-transform text-lg"
           >
@@ -326,7 +327,7 @@ export default function AboutPage() {
                 d="M17 8l4 4m0 0l-4 4m4-4H3"
               />
             </svg>
-          </a>
+          </Link>
         </motion.div>
       </section>
     </main>

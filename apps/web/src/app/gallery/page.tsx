@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import Navigation from "@/components/Navigation";
@@ -245,7 +246,7 @@ export default function GalleryPage() {
             <p className="text-white/60 mb-8">
               We&apos;re always looking for the next adventure. Let&apos;s build something amazing together.
             </p>
-            <a
+            <Link
               href="/contact"
               className="inline-flex items-center gap-2 px-8 py-4 bg-white text-black font-medium rounded-full hover:scale-105 transition-transform"
             >
@@ -263,7 +264,7 @@ export default function GalleryPage() {
                   d="M17 8l4 4m0 0l-4 4m4-4H3"
                 />
               </svg>
-            </a>
+            </Link>
           </div>
 
           {/* Decorative gradient */}

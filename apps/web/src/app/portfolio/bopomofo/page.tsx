@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 
@@ -8,7 +9,7 @@ const AppDemoShell = dynamic(
   { ssr: false },
 );
 
-export default function BopomofoFullscreen() {
+function BopomofoFullscreenContent() {
   const search = useSearchParams();
   const drinkId = search.get("drink");
   const freezeId = search.get("freezeMorph");
@@ -33,5 +34,13 @@ export default function BopomofoFullscreen() {
         <AppDemoShell initialRoute={initialRoute} freezeMorph={freezeMorph} />
       </div>
     </main>
+  );
+}
+
+export default function BopomofoFullscreen() {
+  return (
+    <Suspense fallback={null}>
+      <BopomofoFullscreenContent />
+    </Suspense>
   );
 }
