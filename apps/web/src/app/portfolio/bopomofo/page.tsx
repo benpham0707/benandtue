@@ -19,18 +19,30 @@ function BopomofoFullscreenContent() {
     ? { drinkId: freezeId, progress: freezeAt }
     : undefined;
 
+  // iPhone 14/15 logical ratio: 390 / 844 ≈ 0.462 (19.5:9). Constrain the phone
+  // viewport so it never stretches taller than a real device on desktop.
+  const PHONE_W = 390;
+  const PHONE_H = 844;
+
   return (
     <main
       style={{
         position: "fixed",
         inset: 0,
-        background: "#F7F4EE",
+        background: "#000000",
         display: "flex",
-        alignItems: "stretch",
+        alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 430, height: "100%" }}>
+      <div
+        style={{
+          width: `min(${PHONE_W}px, 100vw, calc(100vh * ${PHONE_W} / ${PHONE_H}))`,
+          aspectRatio: `${PHONE_W} / ${PHONE_H}`,
+          background: "#FFFFFF",
+          overflow: "hidden",
+        }}
+      >
         <AppDemoShell initialRoute={initialRoute} freezeMorph={freezeMorph} />
       </div>
     </main>

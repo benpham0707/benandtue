@@ -13,6 +13,7 @@ export {
   disclaimers,
 } from "./data/drinks";
 export { CupIllustration } from "./components/CupIllustration";
+export { RealCup, hasRealImage } from "./components/RealCup";
 export {
   TagChip,
   DrinkBadge,

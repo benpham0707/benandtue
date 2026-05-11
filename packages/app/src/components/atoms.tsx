@@ -34,26 +34,40 @@ export const TagChip = memo(function TagChip({ tag }: { tag: Tag }) {
 });
 
 const tagStyles = StyleSheet.create({
+  // Sized ~60% of the original chip (40% smaller, per spec) with a darker
+  // outline + text so the chips read clearly over the warm tiger mural.
   chip: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 4,
+    paddingVertical: 2.5,
+    paddingHorizontal: 7,
+    borderRadius: 3.5,
     borderWidth: 1,
-    borderColor: colors.tagBorder,
-    backgroundColor: "transparent",
-  },
-  positive: { borderColor: colors.tagBorderPositive },
-  allergen: { borderColor: "#E0E0E0" },
+    borderColor: "#6E6E6E",
+    backgroundColor: colors.tagFill,
+    // Slightly displaced white "highlight" shadow — same shape as the chip,
+    // offset down-right to pop the chip off the tiger mural. The negative-
+    // spread white sits inside a same-shape colored shadow, leaving ~0.67px
+    // of the tag's border color showing as a thin trace around the highlight.
+    boxShadow:
+      "1.7px 1.7px 0 -0.67px #FFFFFF, 1.7px 1.7px 0 0 #6E6E6E",
+  } as any,
+  positive: {
+    borderColor: colors.tagBorderPositive,
+    boxShadow: `1.7px 1.7px 0 -0.67px #FFFFFF, 1.7px 1.7px 0 0 ${colors.tagBorderPositive}`,
+  } as any,
+  allergen: {
+    borderColor: "#7A7A7A",
+    boxShadow: "1.7px 1.7px 0 -0.67px #FFFFFF, 1.7px 1.7px 0 0 #7A7A7A",
+  } as any,
   text: {
     fontFamily: fontFamily.body,
-    fontSize: type.tag.size,
+    fontSize: 7.5,
     fontWeight: type.tag.weight,
-    letterSpacing: type.tag.tracking,
-    color: colors.textSecondary,
-    lineHeight: type.tag.lineHeight,
+    letterSpacing: 0.12,
+    color: "#2A2A2A",
+    lineHeight: 10,
   },
   textPositive: { color: colors.tagTextPositive },
-  textAllergen: { color: "#9A9A9A" },
+  textAllergen: { color: "#444444" },
 });
 
 // -----------------------------------------------------------------------------
@@ -269,8 +283,17 @@ export function MinusIcon({ size = 14, color = colors.textPrimary }: { size?: nu
   );
 }
 
+export function CheckIcon({ size = 12, color = colors.textPrimary, weight = 1.9 }: { size?: number; color?: string; weight?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 12 12" fill="none">
+      <Path d="M2.4 6.4 L5 9 L9.6 3.4" stroke={color} strokeWidth={weight} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 // -----------------------------------------------------------------------------
-// Sidebar active bar (2 × 28 dark line, flush right of sidebar).
+// Sidebar active bar — thin dark line that sits on the divider, height matches
+// the active label so it reads as part of the text block.
 // -----------------------------------------------------------------------------
 export function ActiveBar() {
   return <View style={activeBarStyles.bar} />;
@@ -278,11 +301,12 @@ export function ActiveBar() {
 const activeBarStyles = StyleSheet.create({
   bar: {
     position: "absolute",
-    right: 0,
+    right: -0.5,
     top: "50%",
-    width: 2,
-    height: 28,
-    marginTop: -14,
+    width: 1.5,
+    height: 38,
+    marginTop: -19,
+    borderRadius: 1,
     backgroundColor: colors.sidebarActiveBar,
   },
 });

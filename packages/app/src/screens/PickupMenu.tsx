@@ -32,7 +32,7 @@ import {
   MenuPrice,
   StarIcon,
 } from "../components/atoms";
-import { CupIllustration } from "../components/CupIllustration";
+import { RealCup } from "../components/RealCup";
 import { menuSections, sections } from "../data/drinks";
 import { colors, fontFamily, motion, radii, space, type } from "../theme/tokens";
 import type { DrinkStub } from "../types";
@@ -152,10 +152,12 @@ export const PickupMenu = forwardRef<PickupMenuHandle, Props>(function PickupMen
                     onLayoutImage={(node) => {
                       node?.measureInWindow?.((x, y, width, height) => {
                         cardRectsRef.current[d.id] = { x, y, width, height };
+                        console.log("[PickupMenu] measured", d.id, { x, y, width, height });
                       });
                     }}
                     onPress={() => {
                       const rect = cardRectsRef.current[d.id];
+                      console.log("[PickupMenu] press", d.id, "rect:", rect);
                       if (!rect) return;
                       onTapDrink(d, { ...rect, drink: d });
                     }}
@@ -225,7 +227,7 @@ function Sidebar({ activeId, onSelect }: { activeId: string; onSelect: (id: stri
           >
             <Text
               style={[styles.sideText, active && styles.sideTextActive]}
-              numberOfLines={3}
+              numberOfLines={2}
             >
               {s.label}
             </Text>
@@ -295,7 +297,7 @@ function DrinkCardCell({
             isOther ? { opacity: otherImageOpacity } : null,
           ]}
         >
-          <CupIllustration drinkId={drink.image} size={110} />
+          <RealCup drinkId={drink.image} size={74} />
         </Animated.View>
         {drink.badge ? (
           <View style={styles.cardBadge}>
@@ -423,16 +425,16 @@ const styles = StyleSheet.create({
   // Sidebar
   sidebar: {
     width: space.sidebarW,
-    paddingTop: 24,
+    paddingVertical: 32,
     borderRightWidth: 1,
     borderRightColor: colors.divider,
     backgroundColor: colors.bgPage,
+    justifyContent: "space-evenly",
   },
   sideRow: {
-    minHeight: space.sidebarRowH,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    paddingRight: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    alignItems: "center",
     justifyContent: "center",
     position: "relative",
   },
@@ -441,7 +443,8 @@ const styles = StyleSheet.create({
     fontSize: type.sidebar.size,
     fontWeight: type.sidebar.weight,
     color: colors.sidebarInactiveText,
-    lineHeight: 18,
+    lineHeight: type.sidebar.lineHeight,
+    textAlign: "center",
   },
   sideTextActive: {
     color: colors.sidebarActiveText,
@@ -481,8 +484,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   cardImageHolder: {
-    width: 130,
-    height: 150,
+    width: 90,
+    height: 106,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
@@ -505,7 +508,7 @@ const styles = StyleSheet.create({
   cardText: {
     width: "100%",
     paddingHorizontal: 8,
-    marginTop: 6,
+    marginTop: -2,
     alignItems: "flex-start",
   },
   cardName: {

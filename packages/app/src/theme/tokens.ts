@@ -14,8 +14,10 @@ export const colors = {
   textOnDarkDim: "#9A9A9A",
 
   tagBorder: "#D0D0D0",
-  tagBorderPositive: "#4CAF50",
-  tagTextPositive: "#3E9C45",
+  tagBorderPositive: "#3D9342",
+  tagTextPositive: "#2F7B33",
+  // Warm off-white fill so chips stay legible over the tiger mural.
+  tagFill: "#FAF5E8",
 
   badgeBg: "rgba(255,255,255,0.85)",
   badgeBorder: "rgba(0,0,0,0.10)",
@@ -45,22 +47,23 @@ export type ColorToken = keyof typeof colors;
 
 // Typography. RN ignores tracking on most platforms but RN Web honors it.
 export const fontFamily = {
-  body: 'Pretendard, "DM Sans", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif',
+  body: 'Nunito, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif',
+  display: 'Recoleta, "Recoleta-Regular", Georgia, "Times New Roman", serif',
 } as const;
 
 export const type = {
-  drinkTitle: { size: 24, weight: "600" as const, tracking: -0.2, lineHeight: 30 },
-  sectionHeader: { size: 18, weight: "600" as const, tracking: 0, lineHeight: 24 },
-  exploreH2: { size: 20, weight: "600" as const, tracking: -0.1, lineHeight: 26 },
+  drinkTitle: { size: 24, weight: "700" as const, tracking: -0.3, lineHeight: 30 },
+  sectionHeader: { size: 17, weight: "700" as const, tracking: -0.1, lineHeight: 22 },
+  exploreH2: { size: 20, weight: "700" as const, tracking: -0.2, lineHeight: 26 },
   priceMain: { size: 22, weight: "700" as const, tracking: -0.4, lineHeight: 26 },
-  priceSymbol: { size: 14, weight: "500" as const, tracking: 0, lineHeight: 18 },
-  cardName: { size: 14, weight: "500" as const, tracking: 0, lineHeight: 18 },
-  cardPrice: { size: 14, weight: "600" as const, tracking: 0, lineHeight: 18 },
+  priceSymbol: { size: 14, weight: "600" as const, tracking: 0, lineHeight: 18 },
+  cardName: { size: 13, weight: "700" as const, tracking: -0.1, lineHeight: 17 },
+  cardPrice: { size: 13, weight: "700" as const, tracking: -0.1, lineHeight: 17 },
   tag: { size: 11, weight: "500" as const, tracking: 0.2, lineHeight: 14 },
   customLabel: { size: 11, weight: "400" as const, tracking: 0, lineHeight: 14 },
   customValue: { size: 14, weight: "600" as const, tracking: 0, lineHeight: 18 },
-  sidebar: { size: 14, weight: "500" as const, tracking: 0, lineHeight: 18 },
-  sidebarActive: { size: 14, weight: "600" as const, tracking: 0, lineHeight: 18 },
+  sidebar: { size: 13, weight: "600" as const, tracking: -0.1, lineHeight: 17 },
+  sidebarActive: { size: 13, weight: "800" as const, tracking: -0.1, lineHeight: 17 },
   disclaimer: { size: 11, weight: "400" as const, tracking: 0, lineHeight: 16 },
   natural: { size: 14, weight: "500" as const, tracking: 8, lineHeight: 18 },
   pickUp: { size: 18, weight: "600" as const, tracking: 0.5, lineHeight: 22 },
@@ -106,8 +109,8 @@ export const space = {
   pillPadH: 24,
   ctaHeight: 52,
   cardImageH: 160,
-  heroImageW: 140,
-  heroImageH: 200,
+  heroImageW: 144,
+  heroImageH: 202,
   sidebarW: 88,
   sidebarRowH: 80,
   sidebarBarW: 2,

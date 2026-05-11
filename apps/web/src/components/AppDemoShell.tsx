@@ -50,14 +50,18 @@ export function AppDemoShell({ initialRoute, freezeMorph }: Props) {
   }, []);
 
   // Compute the destination rect for the detail page's hero image.
-  // Detail screen renders cup at: right 14, top ≈ 60+24 from stage top + paddingTop 12.
-  // Cup width = space.heroImageW (140), height = 140 * 1.4 ≈ 196.
+  // Must match DrinkDetail.tsx HERO_TX/HERO_TY so the morph lands seamlessly:
+  // 75% of the visible cup sits in the tiger hero, 25% in the white sheet.
   const destRect = useCallback((): Rect => {
     const cupW = space.heroImageW;
     const cupH = cupW * 1.4;
+    const HERO_INIT_H = 270;
+    const visibleCupH = cupW * 1.3;
+    const sheetSeamY = HERO_INIT_H - 20;
+    const heroTy = sheetSeamY - 0.75 * visibleCupH - (cupH - visibleCupH) / 2;
     return {
-      x: containerSize.width - 14 - cupW,
-      y: 60,
+      x: containerSize.width - 36 - cupW,
+      y: heroTy,
       width: cupW,
       height: cupH,
     };

@@ -54,14 +54,12 @@ export type Nutrition = {
   caffeineLevel: "green" | "yellow" | "red";
 };
 
+// Real Bopomofo Cafe menu sections (bopomofocafe.com/menu).
 export type Category =
-  | "in-season"
-  | "staff-picks"
-  | "matcha"
-  | "superfood-fruit"
-  | "teamix-tea"
-  | "bobo-milk-tea"
-  | "extra";
+  | "classic-teas"
+  | "premium-signatures"
+  | "premium-matcha"
+  | "premium-espresso";
 
 export type DrinkStub = {
   id: string;

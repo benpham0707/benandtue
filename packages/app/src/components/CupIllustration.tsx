@@ -18,119 +18,136 @@ import Svg, {
 type Layer = { color: string; weight?: number; topping?: boolean };
 type Recipe = { layers: Layer[]; cap?: string; logo?: boolean };
 
+// Neutral fallback for drinks with no recipe entry — soft tan tea look.
+const FALLBACK_RECIPE: Recipe = {
+  layers: [
+    { color: "#F0E5C4", topping: true, weight: 18 },
+    { color: "#C9A36B", weight: 82 },
+  ],
+  logo: true,
+};
+
+// Procedural fallback recipes for the real Bopomofo menu — drinks without
+// photography use these. RealCup hands every drink that has a PNG straight to
+// <Image>, so these only render for the long tail.
 const RECIPES: Record<string, Recipe> = {
-  "coconut-mango-blue": {
+  // Classic Teas (placeholders for ones still missing real photography)
+  "honey-roasted-oolong-milk-tea": {
     layers: [
-      { color: "#F2C24A", topping: true, weight: 14 },
-      { color: "#9DCBE8", weight: 28 },
-      { color: "#F8DA70", weight: 18 },
-      { color: "#9DCBE8", weight: 22 },
-      { color: "#F8DA70", weight: 18 },
+      { color: "#F4E2BD", topping: true, weight: 24 },
+      { color: "#7A4A2A", weight: 76 },
     ],
     logo: true,
   },
-  "mango-grapefruit-boom": {
+
+  // Premium Signatures placeholders
+  "taro-sweet-milk": {
     layers: [
-      { color: "#F4B65B", topping: true, weight: 16 },
-      { color: "#FFFFFF", weight: 18 },
-      { color: "#F2A742", weight: 32 },
-      { color: "#E48732", weight: 34 },
+      { color: "#E9D6E8", topping: true, weight: 22 },
+      { color: "#B894C7", weight: 36 },
+      { color: "#9D72B6", weight: 42 },
     ],
     logo: true,
   },
-  "coconut-mango-boom": {
+  "blueberry-orange-green-tea": {
     layers: [
-      { color: "#F2BD46", topping: true, weight: 16 },
-      { color: "#FFFFFF", weight: 22 },
-      { color: "#F4C040", weight: 26 },
-      { color: "#FFFFFF", weight: 18 },
-      { color: "#F4C040", weight: 18 },
+      { color: "#3F2A6E", topping: true, weight: 14 },
+      { color: "#7A8A36", weight: 36 },
+      { color: "#E2A044", weight: 50 },
     ],
     logo: true,
   },
-  "golden-oolong-yuzu": {
+  "hojicorn-latte": {
     layers: [
-      { color: "#F0C147", topping: true, weight: 12 },
-      { color: "#F8E58A", weight: 36 },
-      { color: "#F2CD3F", weight: 52 },
+      { color: "#F4E0A8", topping: true, weight: 22 },
+      { color: "#C29B5E", weight: 78 },
     ],
     logo: true,
   },
-  "pistachio-cloud-jasmine-coconut": {
+  "hojicha-latte": {
     layers: [
-      { color: "#A6C45A", topping: true, weight: 16 },
-      { color: "#D4D75E", weight: 18 },
-      { color: "#F4D770", weight: 24 },
-      { color: "#F1C854", weight: 42 },
+      { color: "#F0E1C0", topping: true, weight: 18 },
+      { color: "#A8714A", weight: 82 },
     ],
     logo: true,
   },
-  "kale-boost-tea": {
+  "orange-wang": {
     layers: [
-      { color: "#9FBE5E", topping: true, weight: 12 },
-      { color: "#7FB857", weight: 88 },
-    ],
-    cap: "transparent",
-    logo: true,
-  },
-  "king-jasmine-guava": {
-    layers: [
-      { color: "#F8E2D6", topping: true, weight: 18 },
-      { color: "#F0CFC2", weight: 30 },
-      { color: "#E0A89A", weight: 52 },
+      { color: "#FFFFFF", topping: true, weight: 22 },
+      { color: "#F4A53A", weight: 78 },
     ],
     logo: true,
   },
-  "yingde-cheese-milk-tea": {
+
+  // Premium Matcha placeholders
+  "carrot-matcha-latte": {
     layers: [
-      { color: "#F4E2BD", topping: true, weight: 22 },
-      { color: "#5A3522", weight: 78 },
+      { color: "#F0A14E", topping: true, weight: 24 },
+      { color: "#9CB95A", weight: 76 },
     ],
     logo: true,
   },
-  "mochi-yingde-black-milk-tea": {
+  "ba-la-matcha": {
     layers: [
-      { color: "#FFFFFF", topping: true, weight: 14 },
-      { color: "#241910", weight: 86 },
+      { color: "#FFFFFF", topping: true, weight: 18 },
+      { color: "#86A847", weight: 82 },
     ],
     logo: true,
   },
-  "triple-supreme-matcha-latte": {
+  "matcha-latte": {
     layers: [
-      { color: "#A8C95E", topping: true, weight: 12 },
-      { color: "#B5D178", weight: 24 },
-      { color: "#90B255", weight: 64 },
+      { color: "#F4ECDB", topping: true, weight: 22 },
+      { color: "#90B255", weight: 78 },
     ],
     logo: true,
   },
-  "jasmine-milk-tea": {
+  "matcha-soda": {
     layers: [
-      { color: "#EFDDB7", weight: 100 },
-    ],
-    cap: "#E5D5B5",
-    logo: true,
-  },
-  "cloud-matcha-latte": {
-    layers: [
-      { color: "#FFFFFF", topping: true, weight: 26 },
-      { color: "#A8C95E", weight: 74 },
+      { color: "#A8C95E", topping: true, weight: 14 },
+      { color: "#C9DC8A", weight: 86 },
     ],
     logo: true,
   },
-  "cloud-crisp-grape": {
+  "mint-matcha-latte": {
     layers: [
-      { color: "#F8F4ED", topping: true, weight: 28 },
-      { color: "#5C2238", weight: 72 },
+      { color: "#BFE0CF", topping: true, weight: 22 },
+      { color: "#7FA85A", weight: 78 },
     ],
     logo: true,
   },
-  "crisp-grape-boom": {
+
+  // Premium Espresso placeholders
+  "brown-sugar-buzz": {
     layers: [
-      { color: "#7B1F35", topping: true, weight: 16 },
-      { color: "#5A152A", weight: 84 },
+      { color: "#F4E2BD", topping: true, weight: 18 },
+      { color: "#3A1F12", weight: 82 },
     ],
     logo: true,
   },
+  "shaken-espresso": {
+    layers: [
+      { color: "#A6764A", topping: true, weight: 14 },
+      { color: "#2A160C", weight: 86 },
+    ],
+    logo: true,
+  },
+  "coffee-milk-tea": {
+    layers: [
+      { color: "#E4CFAA", topping: true, weight: 22 },
+      { color: "#5C3A22", weight: 78 },
+    ],
+    logo: true,
+  },
+  "sprola": {
+    layers: [
+      { color: "#F4E08A", topping: true, weight: 18 },
+      { color: "#D29A36", weight: 82 },
+    ],
+    logo: true,
+  },
+
+  // Cup-spec line-art keys (kept for the cup-only spec cards if any drink ever
+  // re-introduces a Cup Specification section).
   "cup-500": {
     layers: [{ color: "#FFFFFF", weight: 100 }],
     cap: "transparent",
@@ -177,7 +194,7 @@ type Props = {
 };
 
 function CupIllustrationInner({ drinkId, size, withLogo = true, cupOnly = false }: Props) {
-  const recipe = RECIPES[drinkId] ?? RECIPES["coconut-mango-blue"]!;
+  const recipe = RECIPES[drinkId] ?? FALLBACK_RECIPE;
   const height = (size * VB_H) / VB_W;
 
   if (cupOnly) {

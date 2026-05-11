@@ -1,10 +1,6 @@
-// Mock drink data. Strings (titles, tags, descriptions, customization labels,
-// defaults, nutrition values, disclaimers) are verbatim from FRAME_BY_FRAME_SPEC.md
-// and BOPOMOFO_MENU_SPEC.md so the visuals match the recording.
-//
-// `image` is a recipe key — the CupIllustration component looks up colour layers
-// by id. No PNG assets are shipped with this demo build; the design team needs
-// to swap in transparent cup PNGs per drink (see asset checklist in the prompt).
+// Bopomofo Cafe menu data — drawn from the live menu at bopomofocafe.com/menu.
+// Drinks with real PNG photography live in apps/web/public/bopomofo/; the rest
+// fall through to the procedural CupIllustration via the RealCup wrapper.
 
 import type {
   Category,
@@ -13,65 +9,20 @@ import type {
   Drink,
   DrinkStub,
   Section,
-  Variant,
 } from "../types";
 
 // -----------------------------------------------------------------------------
-// Categories (sidebar order — Frame 01).
+// Sidebar sections — exact menu copy.
 // -----------------------------------------------------------------------------
 export const sections: { id: Category; label: string }[] = [
-  { id: "in-season", label: "In Season" },
-  { id: "staff-picks", label: "Staff Picks" },
-  { id: "matcha", label: "Matcha" },
-  { id: "superfood-fruit", label: "Superfood Tea/Fruit Tea" },
-  { id: "teamix-tea", label: "Teamix / Tea" },
-  { id: "bobo-milk-tea", label: "Bobo Milk Tea" },
-  { id: "extra", label: "Extra" },
+  { id: "classic-teas", label: "Classic Teas" },
+  { id: "premium-signatures", label: "Premium Signatures" },
+  { id: "premium-matcha", label: "Premium Matcha" },
+  { id: "premium-espresso", label: "Premium Espresso" },
 ];
 
 // -----------------------------------------------------------------------------
-// Stub data (menu-only drinks). The 5 with full detail-screen data are merged
-// in via the `detailedDrinks` map below.
-// -----------------------------------------------------------------------------
-const stubs: DrinkStub[] = [
-  // In Season — Frame 12
-  { id: "golden-oolong-yuzu", name: "Golden Oolong Yuzu", price: 7.49, image: "golden-oolong-yuzu", badge: { kind: "calories", value: 90 }, category: "in-season" },
-  { id: "pistachio-cloud-jasmine-coconut", name: "Pistachio Cloud Jasmine Coconut", price: 7.99, image: "pistachio-cloud-jasmine-coconut", category: "in-season" },
-  { id: "king-jasmine-guava", name: "King Jasmine Guava", price: 7.99, image: "king-jasmine-guava", badge: { kind: "calories", value: 150 }, category: "in-season" },
-
-  // Staff Picks — Frame 13
-  { id: "yingde-cheese-milk-tea", name: "Yingde Cheese Milk Tea", price: 7.49, image: "yingde-cheese-milk-tea", category: "staff-picks" },
-  { id: "mochi-yingde-black-milk-tea", name: "Mochi Yingde Black Milk Tea", price: 7.49, image: "mochi-yingde-black-milk-tea", category: "staff-picks" },
-  { id: "kale-boost-tea", name: "Kale Boost Tea", price: 7.99, image: "kale-boost-tea", badge: { kind: "calories", value: 150 }, category: "staff-picks" },
-  { id: "coconut-mango-boom", name: "Coconut Mango Boom", price: 6.99, image: "coconut-mango-boom", badge: { kind: "lactose-free" }, category: "staff-picks" },
-  { id: "triple-supreme-matcha-latte", name: "Triple Supreme Matcha Latte", price: 7.99, image: "triple-supreme-matcha-latte", category: "staff-picks" },
-  { id: "jasmine-milk-tea", name: "Jasmine Milk Tea", price: 6.49, image: "jasmine-milk-tea", badge: { kind: "calories", value: 110 }, category: "staff-picks" },
-
-  // Matcha
-  { id: "triple-supreme-matcha-latte-2", name: "Triple Supreme Matcha Latte", price: 7.99, image: "triple-supreme-matcha-latte", category: "matcha" },
-  { id: "cloud-matcha-latte", name: "Cloud Matcha Latte", price: 7.99, image: "cloud-matcha-latte", category: "matcha" },
-
-  // Superfood Tea/Fruit Tea — Frame 01
-  { id: "kale-boost-tea-2", name: "Kale Boost Tea", price: 7.99, image: "kale-boost-tea", badge: { kind: "calories", value: 150 }, category: "superfood-fruit" },
-  { id: "coconut-mango-blue", name: "Coconut Mango Blue", price: 6.99, image: "coconut-mango-blue", category: "superfood-fruit" },
-  { id: "mango-grapefruit-boom", name: "Mango Grapefruit Boom", price: 7.99, image: "mango-grapefruit-boom", badge: { kind: "lactose-free" }, category: "superfood-fruit" },
-  { id: "coconut-mango-boom-2", name: "Coconut Mango Boom", price: 6.99, image: "coconut-mango-boom", badge: { kind: "lactose-free" }, category: "superfood-fruit" },
-  { id: "cloud-crisp-grape", name: "Cloud Crisp Grape", price: 7.99, image: "cloud-crisp-grape", category: "superfood-fruit" },
-  { id: "crisp-grape-boom", name: "Crisp Grape Boom", price: 7.49, image: "crisp-grape-boom", badge: { kind: "calories", value: 120 }, category: "superfood-fruit" },
-
-  // Teamix / Tea
-  { id: "golden-oolong-yuzu-2", name: "Golden Oolong Yuzu", price: 7.49, image: "golden-oolong-yuzu", badge: { kind: "calories", value: 90 }, category: "teamix-tea" },
-
-  // Bobo Milk Tea
-  { id: "yingde-cheese-milk-tea-2", name: "Yingde Cheese Milk Tea", price: 7.49, image: "yingde-cheese-milk-tea", category: "bobo-milk-tea" },
-  { id: "jasmine-milk-tea-2", name: "Jasmine Milk Tea", price: 6.49, image: "jasmine-milk-tea", badge: { kind: "calories", value: 110 }, category: "bobo-milk-tea" },
-
-  // Extra
-  { id: "kale-boost-tea-3", name: "Kale Boost Tea", price: 7.99, image: "kale-boost-tea", badge: { kind: "calories", value: 150 }, category: "extra" },
-];
-
-// -----------------------------------------------------------------------------
-// Customization presets (small grammar of reusable rows).
+// Customization presets.
 // -----------------------------------------------------------------------------
 const sweetener: Customization = {
   label: "Sugar-Free Sweetener",
@@ -88,256 +39,389 @@ const sugar: Customization = {
   defaultValue: "Less Sugar (Default)",
   options: ["No Sugar", "30% Sugar", "Less Sugar (Default)", "Standard"],
 };
-const teaPreference: Customization = {
-  label: "Tea Preference",
-  defaultValue: "Jasmine Green Tea (Recommend)",
-  options: ["Jasmine Green Tea (Recommend)", "Oolong Tea", "Black Tea"],
+const milkChoice: Customization = {
+  label: "Milk",
+  defaultValue: "Whole Milk (Default)",
+  options: ["Whole Milk (Default)", "Oat Milk", "Almond Milk"],
 };
-const coconutMilkJelly: Customization = {
-  label: "Coconut Milk Jelly",
-  defaultValue: "Default (With Coconut Milk Jelly)",
-  options: ["Default (With Coconut Milk Jelly)", "No Coconut Milk Jelly"],
+const teaStrength: Customization = {
+  label: "Tea Strength",
+  defaultValue: "Standard",
+  options: ["Light", "Standard", "Extra"],
 };
-const sago: Customization = {
-  label: "Sago",
-  defaultValue: "Default (With Sago)",
-  options: ["Default (With Sago)", "No Sago"],
+const pudding: Customization = {
+  label: "Pudding",
+  defaultValue: "Default (With Pudding)",
+  options: ["Default (With Pudding)", "No Pudding"],
 };
-const choiceOfSlushie: Customization = {
-  label: "Choice Of",
-  defaultValue: "Slushie",
-  options: ["Slushie", "Iced"],
-};
-const cloudServing: Customization = {
-  label: "Cloud Serving",
-  defaultValue: "In Drink",
-  options: ["In Drink", "On Top"],
+const foamCap: Customization = {
+  label: "Cream Foam",
+  defaultValue: "Default",
+  options: ["Default", "Light", "Extra"],
 };
 
 // -----------------------------------------------------------------------------
-// Variant constellations.
-// -----------------------------------------------------------------------------
-const blueOrangeYellowVariants: Variant[] = [
-  { id: "coconut-mango-blue", thumbnail: "coconut-mango-blue" },
-  { id: "mango-grapefruit-boom", thumbnail: "mango-grapefruit-boom" },
-  { id: "coconut-mango-boom", thumbnail: "coconut-mango-boom" },
-];
-
-// -----------------------------------------------------------------------------
-// Detailed drinks (full detail-screen content).
+// Detail copy + nutrition for the 9 drinks with real photography.
+// (Caffeine values are reasonable estimates; replace with real lab data when
+// the team delivers it.)
 // -----------------------------------------------------------------------------
 const detailed: Record<string, Drink> = {
-  // Frame 06, 09 — full data with variants. Caffeine ≈25mg, polyphenols 167
-  "coconut-mango-blue": {
-    id: "coconut-mango-blue",
-    name: "Coconut Mango Blue",
-    price: 6.99,
-    image: "coconut-mango-blue",
-    category: "superfood-fruit",
+  "jasmine-tea": {
+    id: "jasmine-tea",
+    name: "Jasmine Tea",
+    price: 5.25,
+    image: "jasmine-tea",
+    category: "classic-teas",
     tags: [
-      { label: "Caffeine Green Light", style: "neutral" },
-      { label: "Milk, Tea", style: "neutral" },
-    ],
-    hasRecipeLink: true,
-    description:
-      "Summer favorite returns. Blue spirulina, used as a natural colorant, brings its vibrant hue to Coconut Mango Boom. Fresh mango, cut daily, blends with smooth coconut milk, topped with sago simmered for 30 minutes and coconut milk jelly.",
-    variants: blueOrangeYellowVariants,
-    customizations: [sweetener, ice, sugar, teaPreference, coconutMilkJelly, sago],
-    hasMoreOptions: true,
-    explore: {
-      name: "Coconut Mango Blue",
-      description:
-        "Summer favorite returns. Blue spirulina, used as a natural colorant, brings its vibrant hue to Coconut Mango Boom. Fresh mango, cut daily, blends with smooth coconut milk, topped with sago simmered for 30 minutes and coconut milk jelly.",
-      allergyReminder: "Milk",
-      photoUri: "coconut-mango-blue/photo",
-      illustrationUri: "coconut-mango-blue/illustration",
-      callouts: blueCallouts(),
-    },
-    nutrition: { energy: 350, protein: 1, carbs: 50, fat: 15, teaPolyphenols: 167, caffeineMgPerCup: 25, caffeineLevel: "green" },
-  },
-
-  // Frame 14 — has cup-spec (500/650), variant ring middle.
-  "mango-grapefruit-boom": {
-    id: "mango-grapefruit-boom",
-    name: "Mango Grapefruit Boom",
-    price: 7.99,
-    image: "mango-grapefruit-boom",
-    badge: { kind: "lactose-free" },
-    category: "superfood-fruit",
-    tags: [
-      { label: "Caffeine Green Light", style: "neutral" },
-      { label: "Milk, Tea", style: "neutral" },
-    ],
-    hasRecipeLink: true,
-    description:
-      "Freshly cut seasonal mangoes paired with handcrafted, freshly cooked Sago. The coconut milk blends smoothly with the mango jasmine tea slushie.Caffeine:Green Light.",
-    variants: blueOrangeYellowVariants,
-    cupSpecs: [
-      { label: "500mL Standard", sizeMl: 500, illustration: "cup-500", isDefault: true },
-      { label: "650mL Upgrade", sizeMl: 650, illustration: "cup-650" },
-    ],
-    customizations: [sweetener, choiceOfSlushie, ice, sugar, teaPreference, coconutMilkJelly, sago],
-    hasMoreOptions: true,
-    explore: {
-      name: "Mango Grapefruit Boom",
-      description:
-        "Freshly cut seasonal mangoes paired with handcrafted, freshly cooked Sago. The coconut milk blends smoothly with the mango jasmine tea slushie.",
-      allergyReminder: "Milk",
-      photoUri: "mango-grapefruit-boom/photo",
-      illustrationUri: "mango-grapefruit-boom/illustration",
-      callouts: boomCallouts(),
-    },
-    nutrition: { energy: 350, protein: 1, carbs: 50, fat: 15, teaPolyphenols: 134, caffeineMgPerCup: 28, caffeineLevel: "green" },
-  },
-
-  // Frame 14 — Coconut Mango Boom with cup spec
-  "coconut-mango-boom": {
-    id: "coconut-mango-boom",
-    name: "Coconut Mango Boom",
-    price: 6.99,
-    image: "coconut-mango-boom",
-    badge: { kind: "lactose-free" },
-    category: "staff-picks",
-    tags: [
-      { label: "Caffeine Green Light", style: "neutral" },
-      { label: "Milk, Tea", style: "neutral" },
-    ],
-    hasRecipeLink: true,
-    description:
-      "Freshly cut mango blended with coconut milk, complemented by freshly cooked handcrafted sago and coconut milk jelly.Caffeine:Green Light.",
-    variants: blueOrangeYellowVariants,
-    cupSpecs: [
-      { label: "500mL Standard", sizeMl: 500, illustration: "cup-500", isDefault: true },
-      { label: "650mL Upgrade", sizeMl: 650, illustration: "cup-650" },
-    ],
-    customizations: [sweetener, choiceOfSlushie, ice, sugar, teaPreference, coconutMilkJelly, sago],
-    hasMoreOptions: true,
-    explore: {
-      name: "Coconut Mango Boom",
-      description:
-        "Freshly cut mango blended with coconut milk, complemented by freshly cooked handcrafted sago and coconut milk jelly.",
-      allergyReminder: "Milk",
-      photoUri: "coconut-mango-boom/photo",
-      illustrationUri: "coconut-mango-boom/illustration",
-      callouts: boomCallouts(),
-    },
-    nutrition: { energy: 350, protein: 1, carbs: 50, fat: 15, teaPolyphenols: 134, caffeineMgPerCup: 28, caffeineLevel: "green" },
-  },
-
-  // Frame 15 — no variants, no cup spec, Milk-Free positive tag.
-  "golden-oolong-yuzu": {
-    id: "golden-oolong-yuzu",
-    name: "Golden Oolong Yuzu",
-    price: 7.49,
-    image: "golden-oolong-yuzu",
-    badge: { kind: "calories", value: 90 },
-    category: "in-season",
-    tags: [
-      { label: "Caffeine Green Light", style: "neutral" },
+      { label: "Caffeine Yellow Light", style: "neutral" },
       { label: "Milk-Free", style: "positive" },
       { label: "Tea", style: "neutral" },
     ],
     hasRecipeLink: true,
     description:
-      "A refreshing teamix. Golden oolong tea brings delicate orchid notes, balanced by the bright sweetness of yuzu. A touch of dried lemon adds a fragrant finish. Caffeine: Green Light.",
-    customizations: [sweetener, ice, sugar],
+      "Hand-picked jasmine green tea, brewed slowly to a clean, fragrant infusion. A delicate floral aroma with a smooth, refreshing finish. Caffeine: Yellow Light.",
+    customizations: [sweetener, ice, sugar, teaStrength],
     hasMoreOptions: true,
     explore: {
-      name: "Golden Oolong Yuzu",
+      name: "Jasmine Tea",
       description:
-        "Golden oolong tea brings delicate orchid notes, balanced by the bright sweetness of yuzu. A touch of dried lemon adds a fragrant finish.",
-      photoUri: "golden-oolong-yuzu/photo",
-      illustrationUri: "golden-oolong-yuzu/illustration",
+        "Hand-picked jasmine green tea, brewed slowly to a clean, fragrant infusion with a delicate floral aroma.",
+      photoUri: "jasmine-tea/photo",
+      illustrationUri: "jasmine-tea/illustration",
       callouts: [
-        { label: "Yuzu", eyebrow: "No Artificial Flavor", yPercent: 22 },
-        { label: "Golden Oolong Tea", eyebrow: "No Artificial Flavor", yPercent: 50 },
-        { label: "Dried Lemon", yPercent: 78 },
+        { label: "Jasmine Green Tea", eyebrow: "No Artificial Flavor", yPercent: 30 },
+        { label: "Cane Sugar", yPercent: 70 },
       ],
     },
-    nutrition: { energy: null, protein: null, carbs: null, fat: null, teaPolyphenols: 465, caffeineMgPerCup: 43, caffeineLevel: "green" },
+    nutrition: { energy: 70, protein: 0, carbs: 17, fat: 0, teaPolyphenols: 312, caffeineMgPerCup: 38, caffeineLevel: "yellow" },
   },
 
-  // Frame 16 — 2-line title, 3 tags incl. allergen.
-  "pistachio-cloud-jasmine-coconut": {
-    id: "pistachio-cloud-jasmine-coconut",
-    name: "Pistachio Cloud Jasmine Coconut",
-    price: 7.99,
-    image: "pistachio-cloud-jasmine-coconut",
-    category: "in-season",
+  "jasmine-milk-tea": {
+    id: "jasmine-milk-tea",
+    name: "Jasmine Milk Tea",
+    price: 5.75,
+    image: "jasmine-milk-tea",
+    category: "classic-teas",
     tags: [
-      { label: "Caffeine Green Light", style: "neutral" },
+      { label: "Caffeine Yellow Light", style: "neutral" },
       { label: "Milk, Tea", style: "neutral" },
-      { label: "pistachio", style: "allergen" },
     ],
     hasRecipeLink: true,
     description:
-      "100% natural coconut water, 5°F cold chain, paired with green jasmine tea for a natural floral blend, topped with homemade pistachio cloud. Caffeine: Green Light..",
-    customizations: [sweetener, ice, sugar, cloudServing],
+      "Hand-picked jasmine green tea blended with cold whole milk, finished with a soft milk cap. Floral notes meet clean dairy. Caffeine: Yellow Light.",
+    customizations: [sweetener, ice, sugar, milkChoice, foamCap],
     hasMoreOptions: true,
     explore: {
-      name: "Pistachio Cloud Jasmine Coconut",
+      name: "Jasmine Milk Tea",
       description:
-        "100% natural coconut water, 5°F cold chain, paired with green jasmine tea for a natural floral blend, topped with homemade pistachio cloud.",
-      allergyReminder: "Pistachio",
-      photoUri: "pistachio-cloud-jasmine-coconut/photo",
-      illustrationUri: "pistachio-cloud-jasmine-coconut/illustration",
+        "Hand-picked jasmine green tea blended with cold whole milk and topped with a soft milk cap.",
+      allergyReminder: "Milk",
+      photoUri: "jasmine-milk-tea/photo",
+      illustrationUri: "jasmine-milk-tea/illustration",
       callouts: [
-        { label: "Pistachio Cloud", eyebrow: "No Artificial Creamer", yPercent: 18 },
-        { label: "Jasmine Green Tea", eyebrow: "No Artificial Flavor", yPercent: 46 },
-        { label: "Coconut Water", eyebrow: "No Artificial Flavor", yPercent: 70 },
-        { label: "Real Cane Sugar", yPercent: 90 },
+        { label: "Milk Cap", eyebrow: "No Artificial Creamer", yPercent: 18 },
+        { label: "Whole Milk", yPercent: 42 },
+        { label: "Jasmine Green Tea", eyebrow: "No Artificial Flavor", yPercent: 70 },
       ],
     },
-    nutrition: { energy: 230, protein: 3, carbs: 16, fat: 15, teaPolyphenols: 384, caffeineMgPerCup: 58, caffeineLevel: "green" },
+    nutrition: { energy: 220, protein: 5, carbs: 31, fat: 8, teaPolyphenols: 287, caffeineMgPerCup: 36, caffeineLevel: "yellow" },
+  },
+
+  "assam-tea": {
+    id: "assam-tea",
+    name: "Assam Tea",
+    price: 5.25,
+    image: "assam-tea",
+    category: "classic-teas",
+    tags: [
+      { label: "Caffeine Yellow Light", style: "neutral" },
+      { label: "Milk-Free", style: "positive" },
+      { label: "Tea", style: "neutral" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Robust Assam black tea brewed strong, with bold malty notes and a clean finish. Caffeine: Yellow Light.",
+    customizations: [sweetener, ice, sugar, teaStrength],
+    hasMoreOptions: true,
+    explore: {
+      name: "Assam Tea",
+      description:
+        "Robust Assam black tea brewed strong, with bold malty notes and a clean finish.",
+      photoUri: "assam-tea/photo",
+      illustrationUri: "assam-tea/illustration",
+      callouts: [
+        { label: "Assam Black Tea", eyebrow: "No Artificial Flavor", yPercent: 35 },
+        { label: "Cane Sugar", yPercent: 75 },
+      ],
+    },
+    nutrition: { energy: 80, protein: 0, carbs: 19, fat: 0, teaPolyphenols: 348, caffeineMgPerCup: 52, caffeineLevel: "yellow" },
+  },
+
+  "assam-milk-tea": {
+    id: "assam-milk-tea",
+    name: "Assam Milk Tea",
+    price: 5.75,
+    image: "assam-milk-tea",
+    category: "classic-teas",
+    tags: [
+      { label: "Caffeine Yellow Light", style: "neutral" },
+      { label: "Milk, Tea", style: "neutral" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Robust Assam black tea blended with whole milk for a classic, full-bodied milk tea. Caffeine: Yellow Light.",
+    customizations: [sweetener, ice, sugar, milkChoice],
+    hasMoreOptions: true,
+    explore: {
+      name: "Assam Milk Tea",
+      description:
+        "Robust Assam black tea blended with whole milk for a classic, full-bodied milk tea.",
+      allergyReminder: "Milk",
+      photoUri: "assam-milk-tea/photo",
+      illustrationUri: "assam-milk-tea/illustration",
+      callouts: [
+        { label: "Whole Milk", yPercent: 22 },
+        { label: "Assam Black Tea", eyebrow: "No Artificial Flavor", yPercent: 60 },
+      ],
+    },
+    nutrition: { energy: 240, protein: 5, carbs: 33, fat: 9, teaPolyphenols: 322, caffeineMgPerCup: 50, caffeineLevel: "yellow" },
+  },
+
+  "honey-roasted-oolong-tea": {
+    id: "honey-roasted-oolong-tea",
+    name: "Honey Roasted Oolong Tea",
+    price: 5.5,
+    image: "honey-roasted-oolong-tea",
+    category: "classic-teas",
+    tags: [
+      { label: "Caffeine Yellow Light", style: "neutral" },
+      { label: "Milk-Free", style: "positive" },
+      { label: "Tea", style: "neutral" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Roasted oolong tea leaves brewed at 95°C, delivering deep caramel notes and a smooth, toasty finish. Caffeine: Yellow Light.",
+    customizations: [sweetener, ice, sugar, teaStrength],
+    hasMoreOptions: true,
+    explore: {
+      name: "Honey Roasted Oolong Tea",
+      description:
+        "Roasted oolong tea leaves brewed at 95°C, delivering deep caramel notes and a smooth, toasty finish.",
+      photoUri: "honey-roasted-oolong-tea/photo",
+      illustrationUri: "honey-roasted-oolong-tea/illustration",
+      callouts: [
+        { label: "Roasted Oolong Tea", eyebrow: "No Artificial Flavor", yPercent: 32 },
+        { label: "Cane Sugar", yPercent: 76 },
+      ],
+    },
+    nutrition: { energy: 75, protein: 0, carbs: 18, fat: 0, teaPolyphenols: 402, caffeineMgPerCup: 44, caffeineLevel: "yellow" },
+  },
+
+  "brown-sugar-pudding-milk-tea": {
+    id: "brown-sugar-pudding-milk-tea",
+    name: "Brown Sugar Pudding Milk Tea",
+    price: 6.95,
+    image: "brown-sugar-pudding-milk-tea",
+    category: "premium-signatures",
+    tags: [
+      { label: "Caffeine Green Light", style: "neutral" },
+      { label: "Milk, Tea", style: "neutral" },
+      { label: "egg", style: "allergen" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Slow-cooked brown sugar syrup hand-poured into the cup, layered with cold whole milk and finished with house-made pudding. Caffeine: Green Light.",
+    customizations: [sweetener, ice, sugar, milkChoice, pudding],
+    hasMoreOptions: true,
+    explore: {
+      name: "Brown Sugar Pudding Milk Tea",
+      description:
+        "Slow-cooked brown sugar syrup hand-poured into the cup, layered with cold whole milk and finished with house-made pudding.",
+      allergyReminder: "Milk, Egg",
+      photoUri: "brown-sugar-pudding-milk-tea/photo",
+      illustrationUri: "brown-sugar-pudding-milk-tea/illustration",
+      callouts: [
+        { label: "Whole Milk", yPercent: 14 },
+        { label: "House-Made Pudding", eyebrow: "Egg", yPercent: 36 },
+        { label: "Brown Sugar Syrup", eyebrow: "Slow-cooked", yPercent: 62 },
+        { label: "Black Tea Concentrate", yPercent: 86 },
+      ],
+    },
+    nutrition: { energy: 380, protein: 6, carbs: 58, fat: 12, teaPolyphenols: 240, caffeineMgPerCup: 32, caffeineLevel: "green" },
+  },
+
+  "strawberry-basil-ginger-lemonade": {
+    id: "strawberry-basil-ginger-lemonade",
+    name: "Strawberry Basil Ginger Lemonade",
+    price: 6.95,
+    image: "strawberry-basil-ginger-lemonade",
+    category: "premium-signatures",
+    tags: [
+      { label: "Caffeine Free", style: "positive" },
+      { label: "Milk-Free", style: "positive" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Fresh strawberries muddled with basil leaves and a touch of ginger, balanced by hand-squeezed lemonade. Caffeine: Free.",
+    customizations: [sweetener, ice, sugar],
+    hasMoreOptions: true,
+    explore: {
+      name: "Strawberry Basil Ginger Lemonade",
+      description:
+        "Fresh strawberries muddled with basil leaves and a touch of ginger, balanced by hand-squeezed lemonade.",
+      photoUri: "strawberry-basil-ginger-lemonade/photo",
+      illustrationUri: "strawberry-basil-ginger-lemonade/illustration",
+      callouts: [
+        { label: "Fresh Strawberry", eyebrow: "Hand-muddled", yPercent: 18 },
+        { label: "Basil Leaf", yPercent: 38 },
+        { label: "Ginger Syrup", yPercent: 58 },
+        { label: "Hand-Squeezed Lemonade", yPercent: 80 },
+      ],
+    },
+    nutrition: { energy: 180, protein: 0, carbs: 44, fat: 0, teaPolyphenols: null, caffeineMgPerCup: 0, caffeineLevel: "green" },
+  },
+
+  "strawberry-corn-milk": {
+    id: "strawberry-corn-milk",
+    name: "Strawberry Corn Milk",
+    price: 6.95,
+    image: "strawberry-corn-milk",
+    category: "premium-signatures",
+    tags: [
+      { label: "Caffeine Free", style: "positive" },
+      { label: "Milk", style: "neutral" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Sweet corn milk freshly blended with whole milk, topped with a fresh strawberry and a sweet-corn cap. Caffeine: Free.",
+    customizations: [sweetener, ice, sugar, milkChoice],
+    hasMoreOptions: true,
+    explore: {
+      name: "Strawberry Corn Milk",
+      description:
+        "Sweet corn milk freshly blended with whole milk, topped with a fresh strawberry and a sweet-corn cap.",
+      allergyReminder: "Milk",
+      photoUri: "strawberry-corn-milk/photo",
+      illustrationUri: "strawberry-corn-milk/illustration",
+      callouts: [
+        { label: "Fresh Strawberry", yPercent: 10 },
+        { label: "Sweet Corn Cap", eyebrow: "House-made", yPercent: 28 },
+        { label: "Whole Milk", yPercent: 56 },
+        { label: "Sweet Corn Milk", eyebrow: "Freshly blended", yPercent: 84 },
+      ],
+    },
+    nutrition: { energy: 280, protein: 6, carbs: 42, fat: 9, teaPolyphenols: null, caffeineMgPerCup: 0, caffeineLevel: "green" },
+  },
+
+  "hey-sesame-milk": {
+    id: "hey-sesame-milk",
+    name: "Hey Sesame Milk",
+    price: 6.95,
+    image: "hey-sesame-milk",
+    category: "premium-signatures",
+    tags: [
+      { label: "Caffeine Free", style: "positive" },
+      { label: "Milk", style: "neutral" },
+      { label: "sesame", style: "allergen" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Stone-ground black sesame paste blended with whole milk for a rich, nutty drink, finished with a soft sesame foam. Caffeine: Free.",
+    customizations: [sweetener, ice, sugar, milkChoice, foamCap],
+    hasMoreOptions: true,
+    explore: {
+      name: "Hey Sesame Milk",
+      description:
+        "Stone-ground black sesame paste blended with whole milk for a rich, nutty drink, finished with a soft sesame foam.",
+      allergyReminder: "Milk, Sesame",
+      photoUri: "hey-sesame-milk/photo",
+      illustrationUri: "hey-sesame-milk/illustration",
+      callouts: [
+        { label: "Sesame Foam", eyebrow: "Stone-ground", yPercent: 18 },
+        { label: "Whole Milk", yPercent: 42 },
+        { label: "Black Sesame Paste", eyebrow: "House-made", yPercent: 72 },
+      ],
+    },
+    nutrition: { energy: 360, protein: 8, carbs: 38, fat: 18, teaPolyphenols: null, caffeineMgPerCup: 0, caffeineLevel: "green" },
   },
 };
 
-function blueCallouts(): CrossSectionCallout[] {
-  return [
-    { label: "Mango Puree", yPercent: 8 },
-    { label: "Jasmine Green Tea (Slushie)", eyebrow: "No Artificial Flavor", yPercent: 22 },
-    { label: "Coconut Milk", eyebrow: "No Artificial Flavor", yPercent: 36 },
-    { label: "100% Mango Juice", eyebrow: "No Artificial Flavor", yPercent: 50 },
-    { label: "Blue Spirulina Liquid", yPercent: 64 },
-    { label: "Sago", yPercent: 76 },
-    { label: "Coconut Milk Jelly", yPercent: 86 },
-    { label: "Real Cane Sugar", yPercent: 96 },
-  ];
-}
-function boomCallouts(): CrossSectionCallout[] {
-  return [
-    { label: "Mango Puree", yPercent: 10 },
-    { label: "Jasmine Green Tea (Slushie)", eyebrow: "No Artificial Flavor", yPercent: 26 },
-    { label: "100% Mango Juice", eyebrow: "No Artificial Flavor", yPercent: 42 },
-    { label: "Coconut Milk", eyebrow: "No Artificial Flavor", yPercent: 58 },
-    { label: "Coconut Milk Jelly", yPercent: 74 },
-    { label: "Sago", yPercent: 86 },
-    { label: "Real Cane Sugar", yPercent: 96 },
-  ];
-}
+// -----------------------------------------------------------------------------
+// Stubs — every drink that appears in the menu, in section order.
+// Drinks that also have a `detailed` entry above will show full detail data
+// when tapped; the rest open a minimal detail view derived from the stub.
+// -----------------------------------------------------------------------------
+const stubs: DrinkStub[] = [
+  // Classic Teas
+  { id: "jasmine-tea", name: "Jasmine Tea", price: 5.25, image: "jasmine-tea", category: "classic-teas" },
+  { id: "jasmine-milk-tea", name: "Jasmine Milk Tea", price: 5.75, image: "jasmine-milk-tea", category: "classic-teas" },
+  { id: "assam-tea", name: "Assam Tea", price: 5.25, image: "assam-tea", category: "classic-teas" },
+  { id: "assam-milk-tea", name: "Assam Milk Tea", price: 5.75, image: "assam-milk-tea", category: "classic-teas" },
+  { id: "honey-roasted-oolong-tea", name: "Honey Roasted Oolong Tea", price: 5.5, image: "honey-roasted-oolong-tea", category: "classic-teas" },
+  { id: "honey-roasted-oolong-milk-tea", name: "Honey Roasted Oolong Milk Tea", price: 6.0, image: "honey-roasted-oolong-milk-tea", category: "classic-teas" },
+
+  // Premium Signatures
+  { id: "brown-sugar-pudding-milk-tea", name: "Brown Sugar Pudding Milk Tea", price: 6.95, image: "brown-sugar-pudding-milk-tea", category: "premium-signatures" },
+  { id: "strawberry-basil-ginger-lemonade", name: "Strawberry Basil Ginger Lemonade", price: 6.95, image: "strawberry-basil-ginger-lemonade", category: "premium-signatures" },
+  { id: "taro-sweet-milk", name: "Taro Sweet Milk", price: 6.95, image: "taro-sweet-milk", category: "premium-signatures" },
+  { id: "blueberry-orange-green-tea", name: "Blueberry Orange Green Tea", price: 6.95, image: "blueberry-orange-green-tea", category: "premium-signatures" },
+  { id: "hojicorn-latte", name: "Hojicorn Latte", price: 6.95, image: "hojicorn-latte", category: "premium-signatures" },
+  { id: "hey-sesame-milk", name: "Hey Sesame Milk", price: 6.95, image: "hey-sesame-milk", category: "premium-signatures" },
+  { id: "hojicha-latte", name: "Hojicha Latte", price: 6.95, image: "hojicha-latte", category: "premium-signatures" },
+  { id: "strawberry-corn-milk", name: "Strawberry Corn Milk", price: 6.95, image: "strawberry-corn-milk", category: "premium-signatures" },
+  { id: "orange-wang", name: "Orange Wang!", price: 6.95, image: "orange-wang", category: "premium-signatures" },
+
+  // Premium Matcha
+  { id: "carrot-matcha-latte", name: "Carrot Matcha Latte", price: 6.95, image: "carrot-matcha-latte", category: "premium-matcha" },
+  { id: "ba-la-matcha", name: "Ba-La Matcha", price: 6.95, image: "ba-la-matcha", category: "premium-matcha" },
+  { id: "matcha-latte", name: "Matcha Latte", price: 6.5, image: "matcha-latte", category: "premium-matcha" },
+  { id: "matcha-soda", name: "Matcha Soda", price: 6.5, image: "matcha-soda", category: "premium-matcha" },
+  { id: "mint-matcha-latte", name: "Mint Matcha Latte", price: 6.95, image: "mint-matcha-latte", category: "premium-matcha" },
+
+  // Premium Espresso
+  { id: "brown-sugar-buzz", name: "Brown Sugar Buzz", price: 6.5, image: "brown-sugar-buzz", category: "premium-espresso" },
+  { id: "shaken-espresso", name: "Shaken Espresso", price: 5.5, image: "shaken-espresso", category: "premium-espresso" },
+  { id: "coffee-milk-tea", name: "Coffee Milk Tea", price: 6.5, image: "coffee-milk-tea", category: "premium-espresso" },
+  { id: "sprola", name: "Sprola", price: 6.0, image: "sprola", category: "premium-espresso" },
+];
 
 // -----------------------------------------------------------------------------
-// Lookups
+// Helpers — build a minimal Drink record from a stub when no detail is on file.
 // -----------------------------------------------------------------------------
-const allDrinks: Map<string, Drink | DrinkStub> = new Map();
+function fallbackDrink(stub: DrinkStub): Drink {
+  return {
+    ...stub,
+    tags: [],
+    hasRecipeLink: false,
+    description:
+      "Detail copy coming soon. This drink's tasting notes, ingredients, and nutrition will be filled in as the menu data is finalized.",
+    customizations: [sweetener, ice, sugar],
+    hasMoreOptions: false,
+    explore: {
+      name: stub.name,
+      description: "Detail copy coming soon.",
+      photoUri: `${stub.image}/photo`,
+      illustrationUri: `${stub.image}/illustration`,
+      callouts: [] as CrossSectionCallout[],
+    },
+    nutrition: { energy: null, protein: null, carbs: null, fat: null, teaPolyphenols: null, caffeineMgPerCup: 0, caffeineLevel: "green" },
+  };
+}
+
+const allDrinks: Map<string, Drink> = new Map();
 for (const s of stubs) {
-  // Promote to detailed when there's a match (tying menu cells to detail data)
-  const detailedById = detailed[s.id] ?? detailed[s.id.replace(/-2$|-3$/, "")];
-  allDrinks.set(s.id, detailedById ? { ...detailedById, id: s.id, category: s.category } : s);
-}
-for (const [id, d] of Object.entries(detailed)) {
-  if (!allDrinks.has(id)) allDrinks.set(id, d);
+  const detailedEntry = detailed[s.id];
+  allDrinks.set(s.id, detailedEntry ?? fallbackDrink(s));
 }
 
-export function getDrinkById(id: string): Drink | DrinkStub | undefined {
+export function getDrinkById(id: string): Drink | undefined {
   return allDrinks.get(id);
 }
 export function getDetailDrink(id: string): Drink | undefined {
-  const base = id.replace(/-2$|-3$/, "");
-  return detailed[base];
+  return allDrinks.get(id);
 }
 export function isDetailedId(id: string): boolean {
-  return Boolean(getDetailDrink(id));
+  return id in detailed;
 }
 
 export const menuSections: Section[] = sections.map((s) => ({
@@ -346,7 +430,7 @@ export const menuSections: Section[] = sections.map((s) => ({
   drinks: stubs.filter((d) => d.category === s.id),
 }));
 
-// Convenience export for the disclaimer block (BOPOMOFO_MENU_SPEC.md §4.14 verbatim).
+// Disclaimer block (verbatim from BOPOMOFO_MENU_SPEC.md §4.14).
 export const disclaimers: string[] = [
   "*Caffeine is an approximate value.",
   "*Caffeine tolerance varies by individual. Please choose based on your own condition.",

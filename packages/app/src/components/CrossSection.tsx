@@ -1,10 +1,12 @@
-// Half-photo / half-illustration cross section + leader lines + callouts.
-// Pre-rendered per drink in production; here we synthesize from the cup recipe
-// so layout/scale/leader-line behavior is exercised end-to-end.
+// Cross-section section: drink photo on the left with leader lines pointing
+// into stacked callouts on the right. When a drink has real photography we
+// render the full PNG (via RealCup); fallback drinks render the procedural
+// half-photo / half-illustration so the spec's Frame 19 layout still reads.
 
 import { StyleSheet, Text, View } from "react-native";
 import Svg, { Path } from "./svg";
 import { CupIllustration } from "./CupIllustration";
+import { RealCup, hasRealImage } from "./RealCup";
 import { colors, fontFamily, type } from "../theme/tokens";
 import type { CrossSectionCallout } from "../types";
 
@@ -14,25 +16,30 @@ type Props = {
 };
 
 export function CrossSection({ drinkId, callouts }: Props) {
-  // Layout: cup on left ~50% width, callouts stacked right.
   const cupWidth = 158;
-  const cupHeight = cupWidth * 1.4; // matches CupIllustration ratio
+  const cupHeight = cupWidth * 1.4;
+  const isReal = hasRealImage(drinkId);
 
   return (
     <View style={styles.row}>
       <View style={styles.cupCol}>
-        {/* photo half (left of cup) — rendered via clip; we approximate with the same SVG */}
-        <View style={[styles.half, { left: 0 }]}>
-          <View style={styles.clipLeft}>
-            <CupIllustration drinkId={drinkId} size={cupWidth} />
-          </View>
-        </View>
-        {/* illustration half (right) — slightly desaturated to read as the cutaway */}
-        <View style={[styles.half, { right: 0, opacity: 0.92 }]}>
-          <View style={styles.clipRight}>
-            <CupIllustration drinkId={drinkId} size={cupWidth} withLogo={false} />
-          </View>
-        </View>
+        {isReal ? (
+          <RealCup drinkId={drinkId} size={cupWidth} />
+        ) : (
+          <>
+            {/* Procedural half-photo / half-illustration look. */}
+            <View style={[styles.half, { left: 0 }]}>
+              <View style={styles.clipLeft}>
+                <CupIllustration drinkId={drinkId} size={cupWidth} />
+              </View>
+            </View>
+            <View style={[styles.half, { right: 0, opacity: 0.92 }]}>
+              <View style={styles.clipRight}>
+                <CupIllustration drinkId={drinkId} size={cupWidth} withLogo={false} />
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       <View style={[styles.calloutCol, { height: cupHeight }]}>
@@ -81,6 +88,8 @@ const styles = StyleSheet.create({
     height: 158 * 1.4,
     position: "relative",
     overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   half: {
     position: "absolute",

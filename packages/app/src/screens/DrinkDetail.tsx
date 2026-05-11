@@ -4,12 +4,15 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
 } from "react";
 import {
   Animated,
+  Easing,
+  Image,
   type LayoutChangeEvent,
   Pressable,
   ScrollView,
@@ -18,6 +21,7 @@ import {
   View,
 } from "react-native";
 import {
+  CheckIcon,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -30,8 +34,9 @@ import {
 } from "../components/atoms";
 import { CrossSection } from "../components/CrossSection";
 import { CupIllustration } from "../components/CupIllustration";
+import { RealCup } from "../components/RealCup";
 import { disclaimers, getDetailDrink } from "../data/drinks";
-import { colors, fontFamily, motion, radii, space, type } from "../theme/tokens";
+import { colors, fontFamily, layout, motion, radii, space, type } from "../theme/tokens";
 import type { Drink, Variant } from "../types";
 
 export type DrinkDetailHandle = {
@@ -53,11 +58,32 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
   const [activeVariantId, setActiveVariantId] = useState<string>(drinkId);
   const drink = getDetailDrink(activeVariantId) ?? getDetailDrink(drinkId);
 
+  // Customization selection state.
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+
   // Variant body fade — drives §5.4 swap animation.
   const bodyFade = useRef(new Animated.Value(1)).current;
   // Real content opacity — driven externally by the morph (sets to 0 then animates to 1).
   // Defaults to 1 so direct (non-morph) navigation renders fully visible immediately.
   const realFade = useRef(new Animated.Value(1)).current;
+
+  // Y of the recipe (Cream Explore) section relative to the sheet's top —
+  // measured at runtime; drives the docked-cup release.
+  const [exploreOffsetY, setExploreOffsetY] = useState(0);
+  const onExploreLayout = useCallback((e: LayoutChangeEvent) => {
+    setExploreOffsetY(e.nativeEvent.layout.y);
+  }, []);
+
+  // Root width + height — width centers the cup horizontally; height drives
+  // the cup-release trigger (we start scrolling the cup off-screen once the
+  // recipe/explore section is close to entering the viewport).
+  const [rootW, setRootW] = useState<number>(layout.phoneWidth);
+  const [rootH, setRootH] = useState<number>(layout.phoneHeight);
+  const onRootLayout = useCallback((e: LayoutChangeEvent) => {
+    setRootW(e.nativeEvent.layout.width);
+    setRootH(e.nativeEvent.layout.height);
+  }, []);
 
   useImperativeHandle(
     ref,
@@ -76,6 +102,22 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
   const onCupSpecLayout = useCallback((e: LayoutChangeEvent) => {
     setCupSpecCardHeight(e.nativeEvent.layout.height);
   }, []);
+
+  // Per-chip widths + chip height captured from the inline tag row — drives
+  // the row-2 height animation that opens up below the static chips when the
+  // overflow chip wraps.
+  const [tagChipWidths, setTagChipWidths] = useState<Record<string, number>>({});
+  const [tagChipHeight, setTagChipHeight] = useState(0);
+  const onTagChipLayout = useCallback(
+    (label: string) => (e: LayoutChangeEvent) => {
+      const { width: w, height: h } = e.nativeEvent.layout;
+      setTagChipWidths((prev) =>
+        prev[label] === w ? prev : { ...prev, [label]: w },
+      );
+      setTagChipHeight((prev) => (prev === h ? prev : h));
+    },
+    [],
+  );
 
   const swapVariant = useCallback(
     (v: Variant) => {
@@ -116,57 +158,323 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
     outputRange: [0, 1],
     extrapolate: "clamp",
   });
-  // We compute manual interpolate on the Animated.Value scrollY:
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, motion.parallax.titleFadeEnd],
+  // Hero content choreography: the title + tags shrink and slide left into a
+  // compact left-aligned block as the cup docks center; the recipe link and
+  // price fade out (they're not needed in the docked state).
+  //
+  // Title animation runs slightly faster than the cup dock (ends at 70 vs the
+  // dock's 100) and uses an ease-in-out curve so the resize feels distinct from
+  // the cup's linear track instead of locked-step.
+  const TITLE_END = 70;
+  const easeSamples = 8;
+  const titleEaseInputs: number[] = [];
+  const titleScaleOutputs: number[] = [];
+  const titleTxOutputs: number[] = [];
+  const titleTyOutputs: number[] = [];
+  for (let i = 0; i <= easeSamples; i++) {
+    const t = i / easeSamples;
+    // ease-in-out cubic
+    const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    titleEaseInputs.push(t * TITLE_END);
+    titleScaleOutputs.push(1 + (0.85 - 1) * eased);
+    titleTxOutputs.push(0 + (-6 - 0) * eased);
+    titleTyOutputs.push(0 + (-4 - 0) * eased);
+  }
+  const titleScale = scrollY.interpolate({
+    inputRange: titleEaseInputs,
+    outputRange: titleScaleOutputs,
+    extrapolate: "clamp",
+  });
+  const titleTranslateX = scrollY.interpolate({
+    inputRange: titleEaseInputs,
+    outputRange: titleTxOutputs,
+    extrapolate: "clamp",
+  });
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: titleEaseInputs,
+    outputRange: titleTyOutputs,
+    extrapolate: "clamp",
+  });
+  // Tag overflow choreography — only the *last* chip animates. It fades out
+  // in place on row 1 (still occupying its inline layout slot, so static
+  // chips don't shift), and a duplicate of it in row 2 fades in as that row
+  // slides open. Static chips render exactly once with no opacity animation
+  // so they stay visually solid (stacking two semi-transparent copies of the
+  // same chip composites to ≈ 75%, not 100% — that's why the static chips
+  // were appearing washed out before).
+  const tagsInlineOpacity = scrollY.interpolate({
+    inputRange: [0, TITLE_END],
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
-  // For drink image we want s' = max(0, scrollY - offset) when cup-spec exists.
-  const imageScrollInput = drink.cupSpecs ? Animated.subtract(scrollY, offset) : scrollY;
-  const imageScale = imageScrollInput.interpolate({
-    inputRange: [0, motion.parallax.imageScaleEnd],
-    outputRange: [1, 0.5],
-    extrapolate: "clamp",
-  });
-  const imageTranslateY = imageScrollInput.interpolate({
-    inputRange: [0, motion.parallax.imageScaleEnd],
-    outputRange: [0, -40],
-    extrapolate: "clamp",
-  });
-  const imageOpacity = imageScrollInput.interpolate({
-    inputRange: [motion.parallax.imageScaleEnd, motion.parallax.imageFadeEnd],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-  const compactOpacity = scrollY.interpolate({
-    inputRange: [motion.parallax.compactStart, motion.parallax.compactFull],
+  const tagsWrappedOpacity = scrollY.interpolate({
+    inputRange: [0, TITLE_END],
     outputRange: [0, 1],
     extrapolate: "clamp",
   });
-  const stageHeight = scrollY.interpolate({
-    inputRange: [0, motion.parallax.stageCollapseEnd],
-    outputRange: [space.stageH, space.stickyHeaderH],
+  // Price fades a touch faster than the recipe link so the disappearance has
+  // a sense of sequence rather than a synchronised dissolve. Both fade in
+  // place — the row-2 tag is positioned absolutely below so it doesn't push
+  // these rows down as it opens.
+  // Price + recipe rows fade right-to-left via a CSS mask gradient. The
+  // sweep is driven by a CSS custom property (`--sweep`) written directly to
+  // the DOM node from the scroll listener — no React state, so the dock
+  // animations don't re-render on every scroll tick.
+  const priceRowRef = useRef<any>(null);
+  const recipeRowRef = useRef<any>(null);
+  useEffect(() => {
+    const id = scrollY.addListener(({ value }) => {
+      const priceP = Math.max(0, Math.min(1, value / 45));
+      const recipeP = Math.max(0, Math.min(1, value / 65));
+      const priceEl = priceRowRef.current as HTMLElement | null;
+      const recipeEl = recipeRowRef.current as HTMLElement | null;
+      if (priceEl?.style) priceEl.style.setProperty("--sweep", String(priceP));
+      if (recipeEl?.style)
+        recipeEl.style.setProperty("--sweep", String(recipeP));
+    });
+    return () => {
+      scrollY.removeListener(id);
+    };
+  }, [scrollY]);
+  // Mask: solid black from the left up to the sweep stop, then a 30% soft
+  // band fading to transparent. At --sweep=0 the gradient sits off the right
+  // edge (fully visible); at --sweep=1 it has swept past the left edge.
+  const sweepMaskStyle = {
+    maskImage:
+      "linear-gradient(to right, #000 calc(100% - var(--sweep, 0) * 130%), transparent calc(130% - var(--sweep, 0) * 130%))",
+    WebkitMaskImage:
+      "linear-gradient(to right, #000 calc(100% - var(--sweep, 0) * 130%), transparent calc(130% - var(--sweep, 0) * 130%))",
+  } as any;
+  // Overflow logic: when there are 2+ chips and they've all measured in,
+  // peel the last chip off as the "overflow" chip. The row-2 container's
+  // height animates from 0 to one chip-height (+ gap) so the layout below
+  // doesn't reserve empty space at scroll=0.
+  const TAG_GAP = 4;
+  const TAG_OVERFLOW_THRESHOLD = 100;
+  const tagWidthsArr = drink.tags.map((t) => tagChipWidths[t.label] ?? 0);
+  const tagsAllMeasured =
+    tagWidthsArr.length >= 2 && tagWidthsArr.every((w) => w > 0);
+  const totalInlineWidth = tagsAllMeasured
+    ? tagWidthsArr.reduce((s, w) => s + w, 0) +
+      TAG_GAP * (tagWidthsArr.length - 1)
+    : 0;
+  const hasOverflow = tagsAllMeasured && totalInlineWidth > TAG_OVERFLOW_THRESHOLD;
+  const overflowChip = hasOverflow ? drink.tags[drink.tags.length - 1] : null;
+  // Vertical gap between row 1 and the docked overflow chip on row 2.
+  const TAG_ROW_GAP = 6;
+  // -------- Layout constants --------
+  const containerW = rootW;
+  const cupW = space.heroImageW;
+  const cupH = cupW * 1.4;
+  // Hero is a fixed-height tiger mural that never scales. Only the white
+  // sheet sliding up over it changes what's visible.
+  const HERO_INIT_H = 270;
+  // Initial cup position — 75% over tiger, 25% in white sheet across the seam.
+  // The cup PNGs are ~0.77:1 (W:H), so when rendered with `contain` in a
+  // cupW × cupH box (W:H = 0.71), the image fits to width and the visible cup
+  // height is roughly cupW × 1.3.
+  const HERO_TX = containerW - 36 - cupW;
+  const visibleCupH = cupW * 1.3;
+  const sheetSeamY = HERO_INIT_H - 20;
+  const HERO_TY = sheetSeamY - 0.75 * visibleCupH - (cupH - visibleCupH) / 2;
+
+  // -------- White veil parallax + cup dock --------
+  // During the parallax phase, the white veil rises just enough to cover the
+  // top 30% of the tiger, shifting focus from the mural to the drink and the
+  // customizations below. The cup tracks the veil's seam vertically (always
+  // 40% white / 60% tiger) and slides from the right edge to horizontal
+  // center. After the phase, the cup continues scrolling off with the content.
+  const PARALLAX_END = 100;
+  // Veil ends up covering 30% of the tiger from the bottom. Subtract the 20px
+  // already covered initially (sheet/hero overlap) to get the net rise.
+  const VEIL_RISE = HERO_INIT_H * 0.3 - (HERO_INIT_H - sheetSeamY);
+  const DOCK_TX = (containerW - cupW) / 2;
+  const DOCK_SCALE = 0.75;
+  // cupTranslateY at parallax end keeps the 75/25 ratio across the new seam,
+  // accounting for scale (visible cup shrinks proportionally around its center).
+  // seam − cup_center = (0.5 − 0.25) * (scale * visibleCupH) = 0.25 * scale * VH.
+  const dockTranslateY =
+    sheetSeamY - VEIL_RISE - 0.25 * DOCK_SCALE * visibleCupH - cupH / 2;
+  // Where the docked cup's visible bottom sits in screen y. The hero shrinks
+  // to this value so the ScrollView starts right under the docked cup,
+  // eliminating the dead white space between cup and content.
+  const dockedCupBottomY = sheetSeamY - VEIL_RISE + 0.25 * DOCK_SCALE * visibleCupH;
+
+  // Ease-out quadratic for the dock animations: y = 1 − (1 − t)². Starts at
+  // normal speed, slows noticeably as it approaches the docked position so the
+  // drink "settles" rather than slamming into place. Quadratic (not cubic)
+  // keeps the maximum dy/dx ≤ 2, well under the 2.597 threshold needed to
+  // keep the content's translateY strictly monotonic — so cup, white veil,
+  // hero, and content all share the same eased motion without any bounce.
+  const DOCK_EASE_SAMPLES = 16;
+  const dockEaseInputs: number[] = [];
+  const dockEaseProgress: number[] = [];
+  for (let i = 0; i <= DOCK_EASE_SAMPLES; i++) {
+    const t = i / DOCK_EASE_SAMPLES;
+    const u = 1 - t;
+    const eased = 1 - u * u;
+    dockEaseInputs.push(t * PARALLAX_END);
+    dockEaseProgress.push(eased);
+  }
+  const dockEase = (from: number, to: number) =>
+    scrollY.interpolate({
+      inputRange: dockEaseInputs,
+      outputRange: dockEaseProgress.map((p) => from + (to - from) * p),
+      extrapolate: "clamp",
+    });
+
+  const heroHeight = dockEase(HERO_INIT_H, dockedCupBottomY);
+  const cupTranslateX = dockEase(HERO_TX, DOCK_TX);
+  const cupScale = dockEase(1, DOCK_SCALE);
+
+  // ---- Hero release ----
+  // Once the recipe/explore section is approaching the viewport, scroll the
+  // entire top stack — hero (mural + title + tags), white veil, and the
+  // docked cup — up off-screen as a unit. The hero uses a negative marginTop
+  // so its layout space collapses and the recipe section slides up to take
+  // over the viewport. The cup and veil translate by the same delta so they
+  // stay glued to the hero as it leaves.
+  const releaseDefined = exploreOffsetY > 0 && rootH > 0;
+  const releaseStart = releaseDefined
+    ? Math.max(PARALLAX_END + 60, exploreOffsetY - rootH * 0.55)
+    : 0;
+  const releaseEnd = releaseStart + 200;
+
+  // Helper: extends a dock-eased curve with a linear release segment that
+  // pushes the value by `releaseDelta` (negative = up) past releaseStart.
+  const dockEaseWithRelease = (from: number, to: number, releaseDelta: number) => {
+    if (!releaseDefined) return dockEase(from, to);
+    return scrollY.interpolate({
+      inputRange: [...dockEaseInputs, releaseStart, releaseEnd],
+      outputRange: [
+        ...dockEaseProgress.map((p) => from + (to - from) * p),
+        to,
+        to + releaseDelta,
+      ],
+      extrapolate: "clamp",
+    });
+  };
+
+  const cupTranslateY = dockEaseWithRelease(HERO_TY, dockTranslateY, -dockedCupBottomY);
+  const veilTranslateY = dockEaseWithRelease(0, -VEIL_RISE, -dockedCupBottomY);
+  const heroMarginTop = releaseDefined
+    ? scrollY.interpolate({
+        inputRange: [releaseStart, releaseEnd],
+        outputRange: [0, -dockedCupBottomY],
+        extrapolate: "clamp",
+      })
+    : 0;
+
+  // Content trails the docking cup with the same ease-out curve so the gap
+  // between cup_bottom and content_top stays constant. With matching easing
+  // on hero + cup, the formula reduces to translateY(s) = s − 38.5 · y(t).
+  const initialCupBottomY = HERO_TY + cupH / 2 + visibleCupH / 2;
+  const cupHeroInitialDelta = initialCupBottomY - HERO_INIT_H; // 38.5
+  const contentTranslateY = scrollY.interpolate({
+    inputRange: dockEaseInputs,
+    outputRange: dockEaseInputs.map(
+      (input, i) => input - cupHeroInitialDelta * dockEaseProgress[i],
+    ),
     extrapolate: "clamp",
   });
 
   return (
-    <View style={styles.root}>
-      {/* Compact sticky header — appears as user scrolls past 80px. */}
+    <View style={styles.root} onLayout={onRootLayout}>
+      {/* Sticky hero — mural + title. Shrinks during parallax so the ScrollView
+          extends upward and sits right under the docked cup; the mural image
+          inside stays at full HERO_INIT_H and is clipped by overflow:hidden. */}
       <Animated.View
-        style={[
-          styles.stickyHeader,
-          { opacity: compactOpacity },
-        ]}
+        style={[styles.hero, { height: heroHeight, marginTop: heroMarginTop }]}
         pointerEvents="box-none"
       >
-        <Pressable style={styles.stickyBack} onPress={onBack} hitSlop={8}>
-          <ChevronLeft size={20} />
+        <View
+          pointerEvents="none"
+          style={[styles.heroMural, { height: HERO_INIT_H }]}
+        >
+          <Image
+            source={{ uri: "/warmtiger.png" }}
+            style={[styles.muralImage, { height: HERO_INIT_H }]}
+            resizeMode="cover"
+            accessibilityIgnoresInvertColors
+          />
+        </View>
+        <Pressable style={styles.heroBack} onPress={onBack} hitSlop={8}>
+          <ChevronLeft size={24} />
         </Pressable>
-        <Text style={styles.stickyTitle} numberOfLines={1}>
-          {drink.name}
-        </Text>
+        <View style={styles.heroContent} pointerEvents="box-none">
+          <Animated.View
+            style={[
+              styles.titleBlock,
+              {
+                transform: [
+                  { translateX: titleTranslateX },
+                  { translateY: titleTranslateY },
+                  { scale: titleScale },
+                ],
+              },
+            ]}
+          >
+            <Text style={styles.title}>{drink.name}</Text>
+            <View style={styles.tagsBlock}>
+              {/* Row 1 — every chip rendered exactly once. The overflow chip
+                  fades out in place but keeps its layout slot, so static
+                  chips never reflow. */}
+              <View style={styles.tagsRow}>
+                {drink.tags.map((t, i) => {
+                  const isOverflow =
+                    hasOverflow && i === drink.tags.length - 1;
+                  return (
+                    <Animated.View
+                      key={`r1-${t.label}`}
+                      onLayout={onTagChipLayout(t.label)}
+                      style={isOverflow ? { opacity: tagsInlineOpacity } : null}
+                    >
+                      <TagChip tag={t} />
+                    </Animated.View>
+                  );
+                })}
+              </View>
+              {/* Row 2 — absolutely positioned just below row 1 (with a small
+                  gap so the chips don't touch). Pure opacity fade — no clip
+                  reveal, so the chip just appears in place rather than
+                  sliding up from below. */}
+              {overflowChip ? (
+                <Animated.View
+                  style={[
+                    styles.tagsRow,
+                    {
+                      position: "absolute",
+                      top: tagChipHeight + TAG_ROW_GAP,
+                      left: 0,
+                      opacity: tagsWrappedOpacity,
+                    },
+                  ]}
+                >
+                  <TagChip tag={overflowChip} />
+                </Animated.View>
+              ) : null}
+            </View>
+          </Animated.View>
+          {drink.hasRecipeLink ? (
+            <View ref={recipeRowRef} style={[styles.recipeRow, sweepMaskStyle]}>
+              <CupQuestionIcon size={20} />
+              <Text style={styles.recipeText}>Recipe/Calories/Allergens</Text>
+              <ChevronRight size={14} color={colors.textPrimary} />
+            </View>
+          ) : null}
+          <View ref={priceRowRef} style={[styles.priceRow, sweepMaskStyle]}>
+            <PriceTag amount={drink.price} />
+          </View>
+        </View>
       </Animated.View>
+
+      {/* White veil — slides up over the tiger faster than the inner content
+          scrolls. Sits between the hero and the ScrollView so it visually
+          covers the tiger while content stays scrollable. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.whiteVeil, { transform: [{ translateY: veilTranslateY }] }]}
+      />
 
       <Animated.ScrollView
         style={styles.scroll}
@@ -178,54 +486,14 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
           { useNativeDriver: false },
         )}
       >
-        {/* Hero stage — collapses on scroll. */}
+        {/* White sheet — content scrolls normally. The visible white edge
+            sliding over the tiger is provided by the veil layer above. */}
         <Animated.View
-          style={[styles.stage, { minHeight: stageHeight as any }]}
+          style={[
+            styles.sheet,
+            { transform: [{ translateY: contentTranslateY }] },
+          ]}
         >
-          <Pressable style={styles.stageBack} onPress={onBack} hitSlop={8}>
-            <ChevronLeft size={24} />
-          </Pressable>
-
-          <Animated.View style={[styles.stageContent, { opacity: titleOpacity }]}>
-            <Text style={styles.title}>{drink.name}</Text>
-            <View style={styles.tags}>
-              {drink.tags.map((t) => (
-                <TagChip key={t.label} tag={t} />
-              ))}
-            </View>
-            {drink.hasRecipeLink ? (
-              <View style={styles.recipeRow}>
-                <CupQuestionIcon size={20} />
-                <Text style={styles.recipeText}>Recipe/Calories/Allergens</Text>
-                <ChevronRight size={14} color={colors.textPrimary} />
-              </View>
-            ) : null}
-            <View style={styles.priceRow}>
-              <PriceTag amount={drink.price} />
-            </View>
-          </Animated.View>
-
-          {/* Drink image — anchored top-right, overlaps the seam. */}
-          <Animated.View
-            style={[
-              styles.heroImage,
-              {
-                opacity: imageOpacity,
-                transform: [{ translateY: imageTranslateY }, { scale: imageScale }],
-              },
-            ]}
-          >
-            <CupIllustration drinkId={drink.image} size={space.heroImageW} />
-            {drink.badge ? (
-              <View style={styles.heroBadge}>
-                <DrinkBadge badge={drink.badge} size={36} />
-              </View>
-            ) : null}
-          </Animated.View>
-        </Animated.View>
-
-        {/* White sheet — top radius, tucks under the seam */}
-        <View style={styles.sheet}>
           <Animated.View style={{ opacity: realFade }}>
             {/* Variant thumbnails (conditional) */}
             {drink.variants ? (
@@ -292,7 +560,20 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
                 <Text style={styles.sectionHeader}>What&apos;s Customizable</Text>
                 <View style={{ gap: space.rowGap }}>
                   {drink.customizations.map((c) => (
-                    <CustomizationRow key={c.label} label={c.label} value={c.defaultValue} />
+                    <CustomizationRow
+                      key={c.label}
+                      customization={c}
+                      selectedValue={selectedOptions[c.label] ?? c.defaultValue}
+                      isExpanded={expandedKey === c.label}
+                      isFaded={expandedKey !== null && expandedKey !== c.label}
+                      onToggle={() =>
+                        setExpandedKey((prev) => (prev === c.label ? null : c.label))
+                      }
+                      onSelect={(opt) => {
+                        setSelectedOptions((prev) => ({ ...prev, [c.label]: opt }));
+                        setExpandedKey(null);
+                      }}
+                    />
                   ))}
                 </View>
               </View>
@@ -310,7 +591,10 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
           </Animated.View>
 
           {/* Cream Explore section */}
-          <Animated.View style={[styles.exploreOuter, { opacity: bodyFade }]}>
+          <Animated.View
+            style={[styles.exploreOuter, { opacity: bodyFade }]}
+            onLayout={onExploreLayout}
+          >
             <View style={styles.exploreInner}>
               <Text style={styles.exploreEyebrow}>Explore More Natural Recipes</Text>
               <Text style={styles.exploreH2}>{drink.explore.name}</Text>
@@ -352,9 +636,36 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
               </View>
             </View>
           </Animated.View>
-        </View>
+        </Animated.View>
         <View style={{ height: 120 }} />
       </Animated.ScrollView>
+
+      {/* Screen-anchored cup overlay — tracks the seam at 40% white / 60% tiger. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.cupOverlay,
+          {
+            width: cupW,
+            height: cupH,
+            opacity: realFade,
+            transform: [
+              { translateX: cupTranslateX },
+              { translateY: cupTranslateY },
+              { scale: cupScale },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.heroCupStroke}>
+          <RealCup drinkId={drink.image} size={space.heroImageW} />
+        </View>
+        {drink.badge ? (
+          <View style={styles.heroBadge}>
+            <DrinkBadge badge={drink.badge} size={36} />
+          </View>
+        ) : null}
+      </Animated.View>
 
       {/* Sticky bottom CTA bar */}
       <BottomCta price={drink.price} />
@@ -403,7 +714,7 @@ function VariantThumb({
         ]}
       >
         <Animated.View style={{ opacity }}>
-          <CupIllustration drinkId={variant.thumbnail} size={36} />
+          <RealCup drinkId={variant.thumbnail} size={36} />
         </Animated.View>
       </Animated.View>
     </Pressable>
@@ -429,45 +740,230 @@ const variantStyles = StyleSheet.create({
 });
 
 // -----------------------------------------------------------------------------
-// Customization row.
+// Customization row — eyebrow label + value, expands inline to a refined
+// dropdown list. Other rows fade to 0.32 while one is expanded so the user's
+// focus stays on the active selection.
 // -----------------------------------------------------------------------------
-function CustomizationRow({ label, value }: { label: string; value: string }) {
+function CustomizationRow({
+  customization,
+  selectedValue,
+  isExpanded,
+  isFaded,
+  onToggle,
+  onSelect,
+}: {
+  customization: { label: string; defaultValue: string; options: string[] };
+  selectedValue: string;
+  isExpanded: boolean;
+  isFaded: boolean;
+  onToggle: () => void;
+  onSelect: (opt: string) => void;
+}) {
+  const heightAnim = useRef(new Animated.Value(0)).current;
+  const expandAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [naturalH, setNaturalH] = useState(0);
+
+  const onOptionsLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      const h = e.nativeEvent.layout.height;
+      if (h > 0 && h !== naturalH) {
+        setNaturalH(h);
+        if (isExpanded) heightAnim.setValue(h);
+      }
+    },
+    [naturalH, isExpanded, heightAnim],
+  );
+
+  useEffect(() => {
+    // Symmetric ease-in-out — slow entry, near-linear middle (the "normal"
+    // speed the user calibrated to), slow exit. Same curve on every channel
+    // so the rounded outline morphs as one piece.
+    const ease = Easing.bezier(0.65, 0, 0.35, 1);
+    Animated.parallel([
+      Animated.timing(heightAnim, {
+        toValue: isExpanded ? naturalH : 0,
+        duration: 380,
+        easing: ease,
+        useNativeDriver: false,
+      }),
+      Animated.timing(expandAnim, {
+        toValue: isExpanded ? 1 : 0,
+        duration: 380,
+        easing: ease,
+        useNativeDriver: false,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: isFaded ? 0.32 : 1,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: false,
+      }),
+    ]).start();
+  }, [isExpanded, isFaded, naturalH, heightAnim, expandAnim, fadeAnim]);
+
+  const arrowRotate = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
+  const animatedBorderColor = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.divider, colors.textPrimary],
+  });
+  const animatedBgColor = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.bgPage, "#FCFCFA"],
+  });
+
   return (
-    <View style={customRowStyles.row}>
-      <View>
-        <Text style={customRowStyles.label}>{label}</Text>
-        <Text style={customRowStyles.value}>{value}</Text>
-      </View>
-      <ChevronDown size={16} color={colors.textPrimary} />
-    </View>
+    <Animated.View
+      style={[
+        customRowStyles.outer,
+        {
+          opacity: fadeAnim,
+          borderColor: animatedBorderColor,
+          backgroundColor: animatedBgColor,
+        },
+      ]}
+    >
+      <Pressable
+        onPress={onToggle}
+        style={customRowStyles.header}
+        hitSlop={4}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={customRowStyles.label}>{customization.label.toUpperCase()}</Text>
+          <Text style={customRowStyles.value} numberOfLines={1}>
+            {selectedValue}
+          </Text>
+        </View>
+        <Animated.View style={{ transform: [{ rotate: arrowRotate }] }}>
+          <ChevronDown size={14} color={colors.textTertiary} weight={1.4} />
+        </Animated.View>
+      </Pressable>
+      <Animated.View
+        style={[customRowStyles.optionsClip, { height: heightAnim }]}
+      >
+        <View style={customRowStyles.optionsInner} onLayout={onOptionsLayout}>
+          <View style={customRowStyles.divider} />
+          {customization.options.map((opt, i) => {
+            const checked = opt === selectedValue;
+            return (
+              <Pressable
+                key={opt}
+                onPress={() => onSelect(opt)}
+                style={[
+                  customRowStyles.optionRow,
+                  i === 0 && customRowStyles.optionRowFirst,
+                  i === customization.options.length - 1 &&
+                    customRowStyles.optionRowLast,
+                  i > 0 && customRowStyles.optionRowDivider,
+                ]}
+                hitSlop={2}
+              >
+                <Text
+                  style={[
+                    customRowStyles.optionLabel,
+                    checked && customRowStyles.optionLabelChecked,
+                  ]}
+                >
+                  {opt}
+                </Text>
+                <View style={customRowStyles.checkSlot}>
+                  {checked ? <CheckIcon size={13} color={colors.textPrimary} weight={1.9} /> : null}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 const customRowStyles = StyleSheet.create({
-  row: {
-    height: space.rowHeight,
-    borderRadius: space.rowRadius,
+  outer: {
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.divider,
+    overflow: "hidden",
+  },
+  header: {
+    paddingTop: 9,
+    paddingBottom: 11,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  label: {
+    fontFamily: fontFamily.body,
+    fontSize: 9.5,
+    fontWeight: "700",
+    letterSpacing: 0.7,
+    color: colors.textTertiary,
+    lineHeight: 12,
+    marginBottom: 3,
+  },
+  value: {
+    fontFamily: fontFamily.body,
+    fontSize: 13.5,
+    fontWeight: "600",
+    letterSpacing: -0.1,
+    color: colors.textPrimary,
+    lineHeight: 17,
+  },
+  optionsClip: {
+    overflow: "hidden",
+  },
+  optionsInner: {
+    paddingTop: 0,
+    paddingBottom: 6,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.dividerSoft,
+    marginHorizontal: 16,
+    marginBottom: 2,
+  },
+  optionRow: {
+    paddingVertical: 9,
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: colors.bgPage,
+    gap: 12,
+    minHeight: 36,
   },
-  label: {
+  optionRowFirst: {
+    paddingTop: 10,
+  },
+  optionRowLast: {
+    paddingBottom: 10,
+  },
+  optionRowDivider: {
+    borderTopWidth: 1,
+    borderTopColor: colors.dividerSoft,
+    marginHorizontal: 16,
+  },
+  optionLabel: {
+    flex: 1,
     fontFamily: fontFamily.body,
-    fontSize: type.customLabel.size,
-    fontWeight: type.customLabel.weight,
+    fontSize: 13,
+    fontWeight: "500",
+    letterSpacing: -0.1,
     color: colors.textSecondary,
-    lineHeight: type.customLabel.lineHeight,
-    marginBottom: 2,
+    lineHeight: 17,
   },
-  value: {
-    fontFamily: fontFamily.body,
-    fontSize: type.customValue.size,
-    fontWeight: type.customValue.weight,
+  optionLabelChecked: {
+    fontWeight: "700",
     color: colors.textPrimary,
-    lineHeight: type.customValue.lineHeight,
+  },
+  checkSlot: {
+    width: 14,
+    height: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
@@ -771,42 +1267,72 @@ const styles = StyleSheet.create({
     padding: 32,
   },
 
-  scroll: { flex: 1 },
+  scroll: {
+    flex: 1,
+    // Soften the top edge so content fades as it slides under the docked
+    // cup zone instead of getting hard-clipped.
+    maskImage: "linear-gradient(to bottom, transparent 0, #000 32px)",
+    WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 32px)",
+  } as any,
   scrollContent: { paddingBottom: 0 },
 
-  // Hero stage
-  stage: {
-    backgroundColor: colors.bgStage,
+  // Sticky hero — fixed at the top of the screen with shrinking height.
+  hero: {
+    width: "100%",
+    backgroundColor: "#F4ECDD",
     paddingHorizontal: space.pagePad,
     paddingTop: 12,
-    paddingBottom: 40,
-    position: "relative",
     overflow: "hidden",
   },
-  stageBack: {
+  heroMural: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  muralImage: {
+    width: "100%",
+    height: "100%",
+    opacity: 0.75,
+  },
+  heroBack: {
     width: 32,
     height: 32,
     alignItems: "flex-start",
     justifyContent: "center",
+    zIndex: 2,
   },
-  stageContent: {
+  heroContent: {
     paddingTop: 24,
-    paddingRight: 140,
+    paddingRight: 180,
   },
+  titleBlock: {
+    // Anchor scale to the top-left so the block shrinks toward the corner
+    // instead of pulling away from it.
+    transformOrigin: "top left",
+  } as any,
   title: {
-    fontFamily: fontFamily.body,
+    fontFamily: fontFamily.display,
     fontSize: type.drinkTitle.size,
     fontWeight: type.drinkTitle.weight,
     letterSpacing: type.drinkTitle.tracking,
     lineHeight: type.drinkTitle.lineHeight,
     color: colors.textPrimary,
-    marginBottom: 12,
-  },
-  tags: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
+    marginBottom: 4,
+    // Thin white traced outline around the glyphs so the title stays legible
+    // over the tiger mural — narrower than the cup's 1.5px stroke.
+    filter:
+      "drop-shadow(1px 0 0 #FFFFFF) drop-shadow(-1px 0 0 #FFFFFF) drop-shadow(0 1px 0 #FFFFFF) drop-shadow(0 -1px 0 #FFFFFF) drop-shadow(0.7px 0.7px 0 #FFFFFF) drop-shadow(-0.7px -0.7px 0 #FFFFFF) drop-shadow(0.7px -0.7px 0 #FFFFFF) drop-shadow(-0.7px 0.7px 0 #FFFFFF)",
+  } as any,
+  tagsBlock: {
     marginBottom: 16,
+    alignSelf: "flex-start",
+  },
+  tagsRow: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    gap: 4,
   },
   recipeRow: {
     flexDirection: "row",
@@ -821,55 +1347,58 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   priceRow: { marginTop: 4 },
-  heroImage: {
+  cupOverlay: {
     position: "absolute",
-    right: 14,
-    top: 60,
-    width: space.heroImageW,
+    top: 0,
+    left: 0,
     alignItems: "center",
+    justifyContent: "flex-start",
+    zIndex: 5,
   },
+  clawPlaceholder: {
+    position: "absolute",
+    top: -20,
+    left: -30,
+    right: -30,
+    bottom: -10,
+    borderWidth: 2,
+    borderStyle: "dashed",
+    borderColor: "rgba(255, 255, 255, 0.85)",
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 255, 255, 0.04)",
+  },
+  heroCupStroke: {
+    // Chain drop-shadows to fake a 1.5px white stroke around the cup silhouette.
+    // RN Web passes `filter` straight through to CSS.
+    filter:
+      "drop-shadow(1.5px 0 0 #FFFFFF) drop-shadow(-1.5px 0 0 #FFFFFF) drop-shadow(0 1.5px 0 #FFFFFF) drop-shadow(0 -1.5px 0 #FFFFFF) drop-shadow(1px 1px 0 #FFFFFF) drop-shadow(-1px -1px 0 #FFFFFF) drop-shadow(1px -1px 0 #FFFFFF) drop-shadow(-1px 1px 0 #FFFFFF)",
+  } as any,
   heroBadge: {
     position: "absolute",
     top: -2,
     right: -8,
+    zIndex: 1,
   },
 
-  // Sticky compact header
-  stickyHeader: {
+  // White veil — full-bleed white panel that lives between the hero and the
+  // ScrollView. Slides up over the tiger to cover it as the user scrolls.
+  whiteVeil: {
     position: "absolute",
-    top: 0,
+    top: 270 - 20,
     left: 0,
     right: 0,
-    height: space.stickyHeaderH,
-    backgroundColor: colors.bgStage,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
-    zIndex: 10,
-  },
-  stickyBack: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 4,
-  },
-  stickyTitle: {
-    fontFamily: fontFamily.body,
-    fontSize: 16,
-    fontWeight: "600",
-    color: colors.textPrimary,
-  },
-
-  // White sheet
-  sheet: {
+    bottom: 0,
     backgroundColor: colors.bgPage,
     borderTopLeftRadius: radii.sheet,
     borderTopRightRadius: radii.sheet,
+  },
+
+  // Sheet — purely a layout wrapper for content. Its visible white edge
+  // is provided by the whiteVeil layer above.
+  sheet: {
+    position: "relative",
     marginTop: -20,
-    paddingTop: 28,
+    paddingTop: 60,
     paddingHorizontal: space.pagePad,
   },
 
