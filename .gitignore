@@ -1,5 +1,13 @@
 # dependencies
 node_modules
+# The embedded pocketsapp demo bundle ships its assets under
+# `assets/node_modules/...` (Metro emits paths that way). The blanket
+# `node_modules` rule above catches that tree, so we explicitly re-include
+# it here. Without this exception every font + icon PNG in the demo is
+# silently dropped from commits and the deployed site renders empty
+# squares for icons.
+!apps/web/public/pocketsapp-demo/assets/node_modules/
+!apps/web/public/pocketsapp-demo/assets/node_modules/**
 .pnp
 .pnp.*
 .yarn/*
@@ -17,6 +25,12 @@ out-deploy/
 build/
 dist/
 .turbo
+# Same story as the `node_modules` exception above — Metro emits asset
+# paths through the source tree, including `.../vector-icons/build/...`
+# for icon fonts and `.../module/assets/...` for navigation glyphs. Keep
+# the embedded demo bundle whole.
+!apps/web/public/pocketsapp-demo/assets/**/build/
+!apps/web/public/pocketsapp-demo/assets/**/build/**
 
 # expo
 .expo/
