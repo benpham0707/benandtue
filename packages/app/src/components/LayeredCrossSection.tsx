@@ -70,7 +70,9 @@ const SAMPLES = 41;
 // Brush-stroke backdrop behind each callout. Pre-keyed transparent PNG so it
 // composites cleanly over the explore section's beige bg without needing
 // mix-blend-mode (which RN doesn't support).
-const BRUSH_URI = "/bopomofo/brush-stroke-transparent.png";
+import { assetPath } from "../utils/assetPath";
+
+const BRUSH_URI = assetPath("/bopomofo/brush-stroke-transparent.png");
 const BRUSH_ASPECT = 2172 / 724; // natural W/H of the trimmed brush
 
 // ----- math (same as web LayeredDiagram) -----

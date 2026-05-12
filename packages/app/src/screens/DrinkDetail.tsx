@@ -45,6 +45,7 @@ import {
 import { disclaimers, getDetailDrink } from "../data/drinks";
 import { colors, fontFamily, layout, motion, radii, space, type } from "../theme/tokens";
 import type { Drink, Variant } from "../types";
+import { assetPath } from "../utils/assetPath";
 
 export type DrinkDetailHandle = {
   /** Used by morph to fade the post-mount real content in. */
@@ -491,7 +492,7 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
           ) : null}
           <View ref={priceRowRef} style={[styles.priceRow, sweepMaskStyle]}>
             <Image
-              source={{ uri: "/bopomofo/price-525.png" }}
+              source={{ uri: assetPath("/bopomofo/price-525.png") }}
               style={styles.priceImage}
               resizeMode="contain"
               accessibilityLabel={`$${drink.price.toFixed(2)}`}

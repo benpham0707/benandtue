@@ -10,6 +10,7 @@ import type {
   DrinkStub,
   Section,
 } from "../types";
+import { assetPath } from "../utils/assetPath";
 
 // -----------------------------------------------------------------------------
 // Sidebar sections — exact menu copy.
@@ -340,21 +341,21 @@ const detailed: Record<string, Drink> = {
       layers: [
         {
           id: "matcha",
-          src: "/bopomofo/recipe-slices/matcha.png",
+          src: assetPath("/bopomofo/recipe-slices/matcha.png"),
           label: "Ceremonial Matcha",
           eyebrow: "Uji, Japan · stone-milled",
           heightPct: 38,
         },
         {
           id: "milk",
-          src: "/bopomofo/recipe-slices/milk.png",
+          src: assetPath("/bopomofo/recipe-slices/milk.png"),
           label: "Steamed Whole Milk",
           eyebrow: "Local dairy",
           heightPct: 24,
         },
         {
           id: "guava",
-          src: "/bopomofo/recipe-slices/guava.png",
+          src: assetPath("/bopomofo/recipe-slices/guava.png"),
           label: "Fresh Guava Purée",
           eyebrow: "Cold-pressed, no sweetener",
           heightPct: 38,

@@ -7,6 +7,8 @@ import Link from "next/link";
 
 import { LayeredDiagram } from "@/components/LayeredDiagram";
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "Matcha Guava Latte · Bopomofo",
   description:
@@ -23,7 +25,7 @@ export default function MatchaGuavaLattePage() {
         <div className="absolute inset-0 -z-10">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/bopomofo/matcha-guava-latte-hero.png"
+            src={`${BASE_PATH}/bopomofo/matcha-guava-latte-hero.png`}
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
             draggable={false}

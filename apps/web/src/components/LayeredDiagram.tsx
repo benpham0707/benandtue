@@ -14,6 +14,8 @@ import {
 } from "framer-motion";
 import { useRef } from "react";
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export type DiagramLayer = {
   id: string;
   src: string;
@@ -28,14 +30,14 @@ export type DiagramLayer = {
 export const MATCHA_GUAVA_LAYERS: DiagramLayer[] = [
   {
     id: "matcha",
-    src: "/bopomofo/recipe-slices/matcha.png",
+    src: `${BASE_PATH}/bopomofo/recipe-slices/matcha.png`,
     label: "Ceremonial Matcha",
     eyebrow: "Uji, Japan · stone-milled",
     aspect: 1531 / 1123,
   },
   {
     id: "milk",
-    src: "/bopomofo/recipe-slices/milk.png",
+    src: `${BASE_PATH}/bopomofo/recipe-slices/milk.png`,
     label: "Steamed Whole Milk",
     eyebrow: "Local dairy",
     aspect: 1531 / 1237,
@@ -43,7 +45,7 @@ export const MATCHA_GUAVA_LAYERS: DiagramLayer[] = [
   },
   {
     id: "guava",
-    src: "/bopomofo/recipe-slices/guava.png",
+    src: `${BASE_PATH}/bopomofo/recipe-slices/guava.png`,
     label: "Fresh Guava Purée",
     eyebrow: "Cold-pressed, no sweetener",
     aspect: 1531 / 1154,
@@ -247,7 +249,7 @@ function LayerCallout({
             white background out against the white page bg so only the smear
             shows. */}
         <motion.img
-          src="/bopomofo/brush-stroke.png"
+          src={`${BASE_PATH}/bopomofo/brush-stroke.png`}
           alt=""
           aria-hidden
           className="pointer-events-none absolute left-1/2 top-1/2 -z-0 w-[150%] max-w-none -translate-x-1/2 -translate-y-1/2 select-none"

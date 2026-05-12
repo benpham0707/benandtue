@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { BrowserFrame } from "@/components/BrowserFrame";
 import { DemoCredentials } from "@/components/DemoCredentials";
+import { ResponsiveScaler } from "@/components/ResponsiveScaler";
 
 const AppDemoShell = dynamic(
   () => import("@/components/AppDemoShell").then((m) => m.AppDemoShell),
@@ -112,41 +113,23 @@ export default function PortfolioPage() {
           </div>
 
           <div className="order-1 lg:order-2 flex items-center justify-center w-full">
-            <div
-              className="w-full mx-auto"
-              style={{
-                maxWidth: 418,
-                aspectRatio: "418 / 872",
-                containerType: "inline-size",
-              }}
-            >
+            <ResponsiveScaler width={418} height={872}>
               <div
+                className="lg:[transform:perspective(1600px)_rotateY(-6deg)_rotateX(2deg)]"
                 style={{
-                  // Render the phone at its native 418×872 box and scale it
-                  // down to fit the container on screens narrower than 418px.
-                  width: 418,
-                  height: 872,
-                  transformOrigin: "top left",
-                  transform: "scale(min(1, calc(100cqi / 418px)))",
+                  // NOTE: transformStyle is explicitly `flat`, not
+                  // `preserve-3d`. With preserve-3d Chromium hit-tests
+                  // descendants in 3D and clicks on the right column of
+                  // the embedded Bopomofo menu silently resolved to the
+                  // dark header band.
+                  transformStyle: "flat",
                 }}
               >
-                <div
-                  className="lg:[transform:perspective(1600px)_rotateY(-6deg)_rotateX(2deg)]"
-                  style={{
-                    // NOTE: transformStyle is explicitly `flat`, not
-                    // `preserve-3d`. With preserve-3d Chromium hit-tests
-                    // descendants in 3D and clicks on the right column of
-                    // the embedded Bopomofo menu silently resolved to the
-                    // dark header band.
-                    transformStyle: "flat",
-                  }}
-                >
-                  <PhoneFrame>
-                    <AppDemoShell />
-                  </PhoneFrame>
-                </div>
+                <PhoneFrame>
+                  <AppDemoShell />
+                </PhoneFrame>
               </div>
-            </div>
+            </ResponsiveScaler>
           </div>
         </motion.div>
       </section>
@@ -336,44 +319,28 @@ export default function PortfolioPage() {
           </div>
 
           <div className="order-1 lg:order-2 flex items-center justify-center w-full">
-            <div
-              className="w-full mx-auto"
-              style={{
-                // PhoneFrame width=340 + bezel*2 (14) = 368 box width.
-                maxWidth: 368,
-                aspectRatio: "368 / 764",
-                containerType: "inline-size",
-              }}
-            >
+            {/* PhoneFrame width=340 + bezel*2 (14) = 368 box width. */}
+            <ResponsiveScaler width={368} height={764}>
               <div
-                style={{
-                  width: 368,
-                  height: 764,
-                  transformOrigin: "top left",
-                  transform: "scale(min(1, calc(100cqi / 368px)))",
-                }}
+                className="lg:[transform:perspective(1600px)_rotateY(-6deg)_rotateX(2deg)]"
+                style={{ transformStyle: "flat" }}
               >
-                <div
-                  className="lg:[transform:perspective(1600px)_rotateY(-6deg)_rotateX(2deg)]"
-                  style={{ transformStyle: "flat" }}
-                >
-                  <PhoneFrame width={340} height={736}>
-                    <iframe
-                      src={POCKETSAPP_DEMO_SRC}
-                      title="Pocket's App — live demo"
-                      allow="camera; geolocation; clipboard-read; clipboard-write"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        border: "none",
-                        display: "block",
-                        background: "#FAF8F5",
-                      }}
-                    />
-                  </PhoneFrame>
-                </div>
+                <PhoneFrame width={340} height={736}>
+                  <iframe
+                    src={POCKETSAPP_DEMO_SRC}
+                    title="Pocket's App — live demo"
+                    allow="camera; geolocation; clipboard-read; clipboard-write"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      border: "none",
+                      display: "block",
+                      background: "#FAF8F5",
+                    }}
+                  />
+                </PhoneFrame>
               </div>
-            </div>
+            </ResponsiveScaler>
           </div>
         </motion.div>
       </section>

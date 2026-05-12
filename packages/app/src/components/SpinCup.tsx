@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import { assetPath } from "../utils/assetPath";
 
 export type SpinCupHandle = {
   setFrame: (idx: number) => void;
@@ -10,7 +11,7 @@ type Props = {
   size: number;
 };
 
-const SPIN_BASE = "/bopomofo/spin";
+const SPIN_BASE = assetPath("/bopomofo/spin");
 const SPIN_FRAME_COUNTS: Record<string, number> = {
   "jasmine-tea": 96,
   "matcha-guava-latte": 189,
