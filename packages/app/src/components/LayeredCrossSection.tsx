@@ -166,26 +166,16 @@ export function LayeredCrossSection({
     return { widths, heights, tops, topBuffer, stackH };
   }, [layers]);
 
-  // Sticky-pin scroll math. The diagram pins at viewport y = STICKY_PIN_VH
-  // and stays there for STICKY_TRAVEL_VH viewports of scroll. During that
-  // window the animation progress advances from 0 → 1, so the full
-  // matcha→milk→guava cycle plays out across the entire scroll dwell rather
-  // than burning through in half a screen.
-  const pinY = viewportH * STICKY_PIN_VH;
-  const stickyTravel = viewportH * STICKY_TRAVEL_VH;
-  const stickyStart = Math.max(0, sectionAbsY - pinY);
-  const stickyEnd = stickyStart + stickyTravel;
+  // Scroll trigger widened to ~1.6 viewport heights of scroll travel. The
+  // diagram itself sits in its natural layout slot — no extra empty space
+  // pushed into the page — only the animation progress per pixel of scroll
+  // changes, so the user feels they have to "scroll more" through the
+  // recipe section for the cycle to advance.
+  const start = Math.max(0, sectionAbsY - viewportH * 0.4);
+  const end = Math.max(start + 1, sectionAbsY + viewportH * 1.2);
   const progress = scrollY.interpolate({
-    inputRange: [stickyStart, stickyEnd],
+    inputRange: [start, end],
     outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-  // Pin offset: 0 before the section reaches its pin point, then tracks
-  // scroll so the diagram appears glued to viewport y = pinY for the
-  // duration of the sticky window, then releases.
-  const stickyTranslateY = scrollY.interpolate({
-    inputRange: [stickyStart, stickyEnd],
-    outputRange: [0, stickyTravel],
     extrapolate: "clamp",
   });
 
@@ -226,25 +216,15 @@ export function LayeredCrossSection({
     [layers.length],
   );
 
-  // Outer height takes the diagram's natural height plus the sticky travel
-  // — gives the user enough scroll runway to traverse the pinned animation.
-  const outerH = geom.stackH + stickyTravel;
-
   return (
-    <View style={{ height: outerH, overflow: "visible" }}>
-      <Animated.View
-        style={{
-          transform: [{ translateY: stickyTranslateY }],
-        }}
+    <View style={styles.row}>
+      {/* Slice column */}
+      <View
+        style={[
+          styles.cupCol,
+          { width: SLICE_W + 24, height: geom.stackH },
+        ]}
       >
-        <View style={styles.row}>
-          {/* Slice column */}
-          <View
-            style={[
-              styles.cupCol,
-              { width: SLICE_W + 24, height: geom.stackH },
-            ]}
-          >
         {layers.map((layer, i) => {
           const a = animated[i];
           const translateY = progress.interpolate({
@@ -370,9 +350,7 @@ export function LayeredCrossSection({
             </Animated.View>
           );
         })}
-          </View>
-        </View>
-      </Animated.View>
+      </View>
     </View>
   );
 }
