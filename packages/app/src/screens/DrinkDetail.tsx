@@ -420,7 +420,7 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
           style={[styles.heroMural, { height: HERO_INIT_H }]}
         >
           <Image
-            source={{ uri: "/warmtiger.png" }}
+            source={{ uri: assetPath("/warmtiger.png") }}
             style={[styles.muralImage, { height: HERO_INIT_H }]}
             resizeMode="cover"
             accessibilityIgnoresInvertColors
@@ -486,7 +486,13 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
           {drink.hasRecipeLink ? (
             <View ref={recipeRowRef} style={[styles.recipeRow, sweepMaskStyle]}>
               <CupQuestionIcon size={20} />
-              <Text style={styles.recipeText}>Recipe/Calories/Allergens</Text>
+              <Text
+                style={[styles.recipeText, { flexShrink: 1 }]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                Recipe/Calories/Allergens
+              </Text>
               <ChevronRight size={14} color={colors.textPrimary} />
             </View>
           ) : null}

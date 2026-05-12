@@ -166,13 +166,22 @@ export function LayeredCrossSection({
     return { widths, heights, tops, topBuffer, stackH };
   }, [layers]);
 
-  // Scroll trigger widened to ~1.6 viewport heights of scroll travel. The
-  // diagram itself sits in its natural layout slot — no extra empty space
-  // pushed into the page — only the animation progress per pixel of scroll
-  // changes, so the user feels they have to "scroll more" through the
-  // recipe section for the cycle to advance.
-  const start = Math.max(0, sectionAbsY - viewportH * 0.4);
-  const end = Math.max(start + 1, sectionAbsY + viewportH * 1.2);
+  // Scroll trigger synced to the diagram's natural visible-on-screen window.
+  // Cycle is mapped to the scroll range from "diagram comfortably in view"
+  // to "diagram about to leave the top of the viewport" — so the full
+  // matcha→milk→guava sequence plays out exactly while the user is looking
+  // at the section. No empty layout space, no animation fragments firing
+  // after the diagram has scrolled away.
+  //
+  // The section header (eyebrow / h2 / description) sits above the diagram
+  // inside the explore section, so the diagram itself is roughly viewportH*0.2
+  // below sectionAbsY. We offset the trigger accordingly.
+  const headerOffset = viewportH * 0.2;
+  const start = Math.max(0, sectionAbsY - viewportH * 0.6 + headerOffset);
+  const end = Math.max(
+    start + 1,
+    sectionAbsY + headerOffset + geom.stackH * 0.6,
+  );
   const progress = scrollY.interpolate({
     inputRange: [start, end],
     outputRange: [0, 1],
@@ -257,7 +266,7 @@ export function LayeredCrossSection({
               ]}
             >
               <Image
-                source={{ uri: layer.src }}
+                source={{ uri: assetPath(layer.src) }}
                 style={{
                   width: geom.widths[i],
                   height: geom.heights[i],
