@@ -6,6 +6,7 @@
   "scripts": {
     "web": "pnpm --filter web dev",
     "web:build": "pnpm --filter web build",
+    "pocketsapp:build": "bash scripts/build-pocketsapp-demo.sh",
     "mobile": "pnpm --filter mobile start",
     "ios": "pnpm --filter mobile ios",
     "android": "pnpm --filter mobile android",

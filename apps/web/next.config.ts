@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
   },
   basePath: isGithubActions ? `/${repoName}` : "",
   assetPrefix: isGithubActions ? `/${repoName}/` : undefined,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: isGithubActions ? `/${repoName}` : "",
+  },
   transpilePackages: transpiledPackages,
   turbopack: {
     resolveAlias: {

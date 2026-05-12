@@ -60,3 +60,7 @@ next-env.d.ts
 !.vscode/launch.json
 !.vscode/extensions.json
 .idea
+
+# agent-local
+.claude/
+.tmp-screenshots/

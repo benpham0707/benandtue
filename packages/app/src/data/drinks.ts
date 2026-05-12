@@ -313,6 +313,57 @@ const detailed: Record<string, Drink> = {
     nutrition: { energy: 280, protein: 6, carbs: 42, fat: 9, teaPolyphenols: null, caffeineMgPerCup: 0, caffeineLevel: "green" },
   },
 
+  "matcha-guava-latte": {
+    id: "matcha-guava-latte",
+    name: "BA - LA Matcha",
+    price: 6.95,
+    image: "matcha-guava-latte",
+    category: "premium-matcha",
+    tags: [
+      { label: "Caffeine Yellow Light", style: "neutral" },
+      { label: "Milk, Tea", style: "neutral" },
+    ],
+    hasRecipeLink: true,
+    description:
+      "Ceremonial-grade matcha shaken over fresh guava purée, lifted with steamed whole milk and a fine layer of foam. Caffeine: Yellow Light.",
+    customizations: [sweetener, ice, sugar, milkChoice, foamCap],
+    hasMoreOptions: true,
+    explore: {
+      name: "BA - LA Matcha",
+      description:
+        "Three layers, three sources: cold-pressed guava on the bottom, steamed whole milk in the middle, and ceremonial matcha shaken with ice on top.",
+      allergyReminder: "Milk",
+      photoUri: "matcha-guava-latte/photo",
+      illustrationUri: "matcha-guava-latte/illustration",
+      callouts: [],
+      // Ordered top → bottom. Sum of heightPct should ≈ 100.
+      layers: [
+        {
+          id: "matcha",
+          src: "/bopomofo/recipe-slices/matcha.png",
+          label: "Ceremonial Matcha",
+          eyebrow: "Uji, Japan · stone-milled",
+          heightPct: 38,
+        },
+        {
+          id: "milk",
+          src: "/bopomofo/recipe-slices/milk.png",
+          label: "Steamed Whole Milk",
+          eyebrow: "Local dairy",
+          heightPct: 24,
+        },
+        {
+          id: "guava",
+          src: "/bopomofo/recipe-slices/guava.png",
+          label: "Fresh Guava Purée",
+          eyebrow: "Cold-pressed, no sweetener",
+          heightPct: 38,
+        },
+      ],
+    },
+    nutrition: { energy: 240, protein: 6, carbs: 32, fat: 8, teaPolyphenols: 310, caffeineMgPerCup: 42, caffeineLevel: "yellow" },
+  },
+
   "hey-sesame-milk": {
     id: "hey-sesame-milk",
     name: "Hey Sesame Milk",
@@ -377,6 +428,7 @@ const stubs: DrinkStub[] = [
   { id: "matcha-latte", name: "Matcha Latte", price: 6.5, image: "matcha-latte", category: "premium-matcha" },
   { id: "matcha-soda", name: "Matcha Soda", price: 6.5, image: "matcha-soda", category: "premium-matcha" },
   { id: "mint-matcha-latte", name: "Mint Matcha Latte", price: 6.95, image: "mint-matcha-latte", category: "premium-matcha" },
+  { id: "matcha-guava-latte", name: "BA - LA Matcha", price: 6.95, image: "matcha-guava-latte", category: "premium-matcha" },
 
   // Premium Espresso
   { id: "brown-sugar-buzz", name: "Brown Sugar Buzz", price: 6.5, image: "brown-sugar-buzz", category: "premium-espresso" },

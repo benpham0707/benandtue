@@ -17,6 +17,7 @@ const REAL_IMAGES: Record<string, string> = {
   "strawberry-basil-ginger-lemonade": "/bopomofo/strawberry-basil-ginger-lemonade.png",
   "strawberry-corn-milk": "/bopomofo/strawberry-corn-milk.png",
   "hey-sesame-milk": "/bopomofo/hey-sesame-milk.png",
+  "matcha-guava-latte": "/bopomofo/matcha-guava-latte.png",
 };
 
 type Props = {

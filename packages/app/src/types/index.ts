@@ -35,6 +35,17 @@ export type CrossSectionCallout = {
   yPercent: number; // 0..100 — where the leader line meets the layer
 };
 
+// A single liquid slice for the layered cross-section. Ordered top → bottom.
+// `src` is a /public-served PNG with magenta keyed out. `heightPct` is the
+// share of the assembled-cup column this layer occupies (sum should ≈ 100).
+export type CrossSectionLayer = {
+  id: string;
+  src: string;
+  label: string;
+  eyebrow?: string;
+  heightPct: number;
+};
+
 export type ExploreSection = {
   name: string;
   description: string;
@@ -42,6 +53,9 @@ export type ExploreSection = {
   photoUri: string; // photo half (left of vertical split)
   illustrationUri: string; // illustration half (right of vertical split)
   callouts: CrossSectionCallout[];
+  // Optional layered cross-section. When present, DrinkDetail renders the
+  // LayeredCrossSection instead of the single-image CrossSection.
+  layers?: CrossSectionLayer[];
 };
 
 export type Nutrition = {

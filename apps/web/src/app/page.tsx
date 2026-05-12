@@ -48,22 +48,6 @@ export default function Home() {
                 <div className="absolute bottom-0 left-0 w-1/2 h-1/2 bg-gradient-to-tr from-blue-900/10 via-transparent to-transparent" />
               </div>
 
-              {/* Floating orb */}
-              <motion.div
-                className="absolute top-1/4 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ 
-                  opacity: 1, 
-                  scale: 1,
-                  y: [0, -15, 0]
-                }}
-                transition={{ 
-                  opacity: { delay: 0.3, duration: 0.5 },
-                  scale: { delay: 0.3, duration: 0.5 },
-                  y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
-                }}
-              />
-
               {/* Hero Content Grid */}
               <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center flex-1">
                 {/* Left: Text Content */}
@@ -98,10 +82,10 @@ export default function Home() {
                     transition={{ duration: 0.8, delay: 0.6 }}
                   >
                     <Link
-                      href="/gallery"
+                      href="/portfolio"
                       className="group relative px-8 py-4 bg-white text-black font-medium rounded-full overflow-hidden transition-transform hover:scale-105"
                     >
-                      <span className="relative z-10">View Projects</span>
+                      <span className="relative z-10">View Live Portfolio</span>
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-violet-500 to-purple-500"
                         initial={{ x: "-100%" }}
@@ -109,7 +93,7 @@ export default function Home() {
                         transition={{ duration: 0.3 }}
                       />
                       <span className="absolute inset-0 z-10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        View Projects
+                        View Live Portfolio
                       </span>
                     </Link>
                     <Link

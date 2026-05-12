@@ -33,8 +33,15 @@ import {
   TagChip,
 } from "../components/atoms";
 import { CrossSection } from "../components/CrossSection";
+import { LayeredCrossSection } from "../components/LayeredCrossSection";
 import { CupIllustration } from "../components/CupIllustration";
 import { RealCup } from "../components/RealCup";
+import {
+  SpinCup,
+  type SpinCupHandle,
+  hasSpinFrames,
+  getSpinFrameCount,
+} from "../components/SpinCup";
 import { disclaimers, getDetailDrink } from "../data/drinks";
 import { colors, fontFamily, layout, motion, radii, space, type } from "../theme/tokens";
 import type { Drink, Variant } from "../types";
@@ -95,6 +102,8 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
 
   // Scroll value for parallax collapse (§4.16 / §5.3).
   const scrollY = useRef(new Animated.Value(0)).current;
+  const spinRef = useRef<SpinCupHandle | null>(null);
+  const spinConfigRef = useRef({ start: 0, distance: 320, frames: 96 });
 
   // Cup-spec card height (for the parallax override) — measured at runtime.
   const [cupSpecCardHeight, setCupSpecCardHeight] = useState(0);
@@ -231,6 +240,9 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
       if (priceEl?.style) priceEl.style.setProperty("--sweep", String(priceP));
       if (recipeEl?.style)
         recipeEl.style.setProperty("--sweep", String(recipeP));
+      const cfg = spinConfigRef.current;
+      const spinP = Math.max(0, Math.min(1, (value - cfg.start) / cfg.distance));
+      spinRef.current?.setFrame(Math.floor(spinP * (cfg.frames - 1)));
     });
     return () => {
       scrollY.removeListener(id);
@@ -274,7 +286,12 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
   // cupW × cupH box (W:H = 0.71), the image fits to width and the visible cup
   // height is roughly cupW × 1.3.
   const HERO_TX = containerW - 36 - cupW;
-  const visibleCupH = cupW * 1.3;
+  // RealCup: 0.77:1 PNG fills the cupW × cupH box to ~1.3 cupW vertically.
+  // SpinCup: 1:1 webp fits width inside cupW × cupH, then the cup body itself
+  // only occupies ~85% of the rendered square, so the actual visible cup is
+  // ~0.85 cupW tall. Using the wrong ratio causes the docked cup bottom to
+  // mis-align with the content seam by ~0.3 cupW × DOCK_SCALE.
+  const visibleCupH = hasSpinFrames(drink.image) ? cupW * 0.85 : cupW * 1.3;
   const sheetSeamY = HERO_INIT_H - 20;
   const HERO_TY = sheetSeamY - 0.75 * visibleCupH - (cupH - visibleCupH) / 2;
 
@@ -285,11 +302,16 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
   // 40% white / 60% tiger) and slides from the right edge to horizontal
   // center. After the phase, the cup continues scrolling off with the content.
   const PARALLAX_END = 100;
+  // Scroll-linked 360° spin: starts just after the cup docks, runs over
+  // SPIN_DISTANCE px of scroll. Frame index is mutated directly on the
+  // <img> ref (no React re-render) from the scrollY listener below.
+  const SPIN_FRAMES = getSpinFrameCount(drink.image) || 96;
+  const SPIN_START = 0;
   // Veil ends up covering 30% of the tiger from the bottom. Subtract the 20px
   // already covered initially (sheet/hero overlap) to get the net rise.
   const VEIL_RISE = HERO_INIT_H * 0.3 - (HERO_INIT_H - sheetSeamY);
   const DOCK_TX = (containerW - cupW) / 2;
-  const DOCK_SCALE = 0.75;
+  const DOCK_SCALE = 1.15;
   // cupTranslateY at parallax end keeps the 75/25 ratio across the new seam,
   // accounting for scale (visible cup shrinks proportionally around its center).
   // seam − cup_center = (0.5 − 0.25) * (scale * visibleCupH) = 0.25 * scale * VH.
@@ -300,21 +322,18 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
   // eliminating the dead white space between cup and content.
   const dockedCupBottomY = sheetSeamY - VEIL_RISE + 0.25 * DOCK_SCALE * visibleCupH;
 
-  // Ease-out quadratic for the dock animations: y = 1 − (1 − t)². Starts at
-  // normal speed, slows noticeably as it approaches the docked position so the
-  // drink "settles" rather than slamming into place. Quadratic (not cubic)
-  // keeps the maximum dy/dx ≤ 2, well under the 2.597 threshold needed to
-  // keep the content's translateY strictly monotonic — so cup, white veil,
-  // hero, and content all share the same eased motion without any bounce.
+  // Linear interpolation for the dock animations. Ease-out would settle the
+  // cup to slope 0 at PARALLAX_END, then the post-dock scroll would resume at
+  // slope -1 — that 100% rate jump reads as a "bounce" right after the cup
+  // sticks. Linear keeps the in-parallax cup slope at ~-0.756 px/scroll px,
+  // so the transition to the natural -1 slope is only a ~24% rate change.
   const DOCK_EASE_SAMPLES = 16;
   const dockEaseInputs: number[] = [];
   const dockEaseProgress: number[] = [];
   for (let i = 0; i <= DOCK_EASE_SAMPLES; i++) {
     const t = i / DOCK_EASE_SAMPLES;
-    const u = 1 - t;
-    const eased = 1 - u * u;
     dockEaseInputs.push(t * PARALLAX_END);
-    dockEaseProgress.push(eased);
+    dockEaseProgress.push(t);
   }
   const dockEase = (from: number, to: number) =>
     scrollY.interpolate({
@@ -339,6 +358,14 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
     ? Math.max(PARALLAX_END + 60, exploreOffsetY - rootH * 0.55)
     : 0;
   const releaseEnd = releaseStart + 200;
+
+  // Scroll distance over which the cup rotates 360°. Spans the full
+  // visible-cup window (dock → stick → release) so the cup keeps spinning
+  // as the user scrolls all the way until it's off-screen.
+  const SPIN_DISTANCE = releaseDefined ? releaseEnd : 320;
+  spinConfigRef.current.start = SPIN_START;
+  spinConfigRef.current.distance = SPIN_DISTANCE;
+  spinConfigRef.current.frames = SPIN_FRAMES;
 
   // Helper: extends a dock-eased curve with a linear release segment that
   // pushes the value by `releaseDelta` (negative = up) past releaseStart.
@@ -463,7 +490,12 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
             </View>
           ) : null}
           <View ref={priceRowRef} style={[styles.priceRow, sweepMaskStyle]}>
-            <PriceTag amount={drink.price} />
+            <Image
+              source={{ uri: "/bopomofo/price-525.png" }}
+              style={styles.priceImage}
+              resizeMode="contain"
+              accessibilityLabel={`$${drink.price.toFixed(2)}`}
+            />
           </View>
         </View>
       </Animated.View>
@@ -611,10 +643,19 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
                 </View>
               ) : null}
 
-              <CrossSection
-                drinkId={drink.image}
-                callouts={drink.explore.callouts}
-              />
+              {drink.explore.layers && drink.explore.layers.length > 0 ? (
+                <LayeredCrossSection
+                  layers={drink.explore.layers}
+                  scrollY={scrollY}
+                  sectionAbsY={exploreOffsetY}
+                  viewportH={rootH}
+                />
+              ) : (
+                <CrossSection
+                  drinkId={drink.image}
+                  callouts={drink.explore.callouts}
+                />
+              )}
               <Text style={styles.imageCaption}>
                 *Image displayed is for illustration purposes only.
               </Text>
@@ -658,7 +699,16 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
         ]}
       >
         <View style={styles.heroCupStroke}>
-          <RealCup drinkId={drink.image} size={space.heroImageW} />
+          {hasSpinFrames(drink.image) ? (
+            <SpinCup
+              ref={spinRef}
+              drinkId={drink.image}
+              frameCount={SPIN_FRAMES}
+              size={space.heroImageW}
+            />
+          ) : (
+            <RealCup drinkId={drink.image} size={space.heroImageW} />
+          )}
         </View>
         {drink.badge ? (
           <View style={styles.heroBadge}>
@@ -814,6 +864,30 @@ function CustomizationRow({
     inputRange: [0, 1],
     outputRange: [colors.bgPage, "#FCFCFA"],
   });
+  // Header label/value cross-fade + shrink: when the row expands, the selected
+  // value fades out, the header height collapses to a compact section-title
+  // size, and the label translates down + darkens so it reads as an
+  // intentional subheader rather than a stray eyebrow stuck in the corner.
+  const headerValueOpacity = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+  const headerHeight = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [52, 38],
+  });
+  // Push the label down so it lands at vertical centre of the collapsed
+  // 38px header (header_center − natural_label_top ≈ 19 − 9 = 10).
+  const headerLabelTranslateY = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 10],
+  });
+  // Subheader colour — jumps from the faded eyebrow grey to the same dark
+  // tone the option text uses, so the label reads as a real heading.
+  const headerLabelColor = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [colors.textTertiary, colors.textPrimary],
+  });
 
   return (
     <Animated.View
@@ -823,22 +897,48 @@ function CustomizationRow({
           opacity: fadeAnim,
           borderColor: animatedBorderColor,
           backgroundColor: animatedBgColor,
-        },
+          // Offset white-highlight + dark-trace shadow that matches the tag
+          // chip language. Only present when expanded — gives a subtle pop
+          // so the active selection card reads as elevated. RN Web transition
+          // lets it fade in/out alongside the border-color tween.
+          boxShadow: isExpanded
+            ? `2.5px 2.5px 0 -0.67px #FFFFFF, 2.5px 2.5px 0 0 ${colors.textPrimary}`
+            : "none",
+          transitionProperty: "box-shadow",
+          transitionDuration: "380ms",
+          transitionTimingFunction: "cubic-bezier(0.65, 0, 0.35, 1)",
+        } as any,
       ]}
     >
-      <Pressable
-        onPress={onToggle}
-        style={customRowStyles.header}
-        hitSlop={4}
-      >
-        <View style={{ flex: 1 }}>
-          <Text style={customRowStyles.label}>{customization.label.toUpperCase()}</Text>
-          <Text style={customRowStyles.value} numberOfLines={1}>
-            {selectedValue}
-          </Text>
-        </View>
-        <Animated.View style={{ transform: [{ rotate: arrowRotate }] }}>
-          <ChevronDown size={14} color={colors.textTertiary} weight={1.4} />
+      <Pressable onPress={onToggle} hitSlop={4}>
+        <Animated.View
+          style={[
+            customRowStyles.header,
+            { height: headerHeight, minHeight: 0, overflow: "hidden" },
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            <Animated.Text
+              style={[
+                customRowStyles.label,
+                {
+                  color: headerLabelColor,
+                  transform: [{ translateY: headerLabelTranslateY }],
+                },
+              ]}
+            >
+              {customization.label.toUpperCase()}
+            </Animated.Text>
+            <Animated.Text
+              style={[customRowStyles.value, { opacity: headerValueOpacity }]}
+              numberOfLines={1}
+            >
+              {selectedValue}
+            </Animated.Text>
+          </View>
+          <Animated.View style={{ transform: [{ rotate: arrowRotate }] }}>
+            <ChevronDown size={14} color={colors.textTertiary} weight={1.4} />
+          </Animated.View>
         </Animated.View>
       </Pressable>
       <Animated.View
@@ -1347,6 +1447,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   priceRow: { marginTop: 4 },
+  // Brushed-ink "$5.25" graphic. Aspect ratio of the source is ~1.9:1, so a
+  // 95×50 box renders it crisply at roughly the same visual weight as the old
+  // text price.
+  priceImage: { width: 66.5, height: 35 },
   cupOverlay: {
     position: "absolute",
     top: 0,

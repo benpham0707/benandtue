@@ -5,6 +5,7 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -138,34 +139,46 @@ export const PickupMenu = forwardRef<PickupMenuHandle, Props>(function PickupMen
               style={styles.section}
             >
               <Text style={styles.sectionHeader}>{sec.label}</Text>
-              <View style={styles.grid}>
-                {sec.drinks.map((d) => (
-                  <DrinkCardCell
-                    key={d.id}
-                    drink={d}
-                    pressedId={pressedId}
-                    morphProgress={morphProgress}
-                    onMeasure={(rect) => {
-                      // Convert the cell's absolute rect to overlay coords.
-                      // We rely on measureInWindow.
-                    }}
-                    onLayoutImage={(node) => {
-                      node?.measureInWindow?.((x, y, width, height) => {
-                        cardRectsRef.current[d.id] = { x, y, width, height };
-                        console.log("[PickupMenu] measured", d.id, { x, y, width, height });
-                      });
-                    }}
-                    onPress={() => {
-                      const rect = cardRectsRef.current[d.id];
-                      console.log("[PickupMenu] press", d.id, "rect:", rect);
-                      if (!rect) return;
-                      onTapDrink(d, { ...rect, drink: d });
-                    }}
-                  />
-                ))}
-                {/* Section with odd item count: leave bottom-right empty (Frame 12). */}
-                {sec.drinks.length % 2 === 1 ? <View style={styles.cell} /> : null}
-              </View>
+              {/* Pair drinks into explicit 2-wide rows. flexWrap + columnGap
+                  on a single grid container was letting the right cell slip
+                  past the parent's overflow boundary on certain widths,
+                  which killed pointer events for the right column. Manual
+                  rows are bulletproof. */}
+              {chunkPairs(sec.drinks).map((pair, rowIdx) => (
+                <View key={rowIdx} style={styles.row}>
+                  {pair.map((d) => (
+                    <DrinkCardCell
+                      key={d.id}
+                      drink={d}
+                      pressedId={pressedId}
+                      morphProgress={morphProgress}
+                      onMeasure={() => {}}
+                      onLayoutImage={(node) => {
+                        node?.measureInWindow?.((x, y, width, height) => {
+                          cardRectsRef.current[d.id] = { x, y, width, height };
+                          console.log("[PickupMenu] measured", d.id, { x, y, width, height });
+                        });
+                      }}
+                      onPressNode={(node) => {
+                        const cached = cardRectsRef.current[d.id];
+                        if (cached && cached.width > 0 && cached.height > 0) {
+                          console.log("[PickupMenu] press", d.id, "cached rect:", cached);
+                          onTapDrink(d, { ...cached, drink: d });
+                          return;
+                        }
+                        console.log("[PickupMenu] press", d.id, "measuring on demand");
+                        node?.measureInWindow?.((x, y, width, height) => {
+                          if (!width || !height) return;
+                          const r = { x, y, width, height };
+                          cardRectsRef.current[d.id] = r;
+                          onTapDrink(d, { ...r, drink: d });
+                        });
+                      }}
+                    />
+                  ))}
+                  {pair.length === 1 ? <View style={styles.cell} /> : null}
+                </View>
+              ))}
             </View>
           ))}
           <View style={styles.toastBleed} />
@@ -182,6 +195,12 @@ function findDrink(id: string): DrinkStub | undefined {
     for (const d of sec.drinks) if (d.id === id) return d;
   }
   return undefined;
+}
+
+function chunkPairs<T>(arr: T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += 2) out.push(arr.slice(i, i + 2));
+  return out;
 }
 
 // -----------------------------------------------------------------------------
@@ -246,13 +265,13 @@ function DrinkCardCell({
   drink,
   pressedId,
   morphProgress,
-  onPress,
+  onPressNode,
   onLayoutImage,
 }: {
   drink: DrinkStub;
   pressedId: string | null | undefined;
   morphProgress?: Animated.Value;
-  onPress: () => void;
+  onPressNode: (node: View | null) => void;
   onMeasure: (rect: LayoutRectangle) => void;
   onLayoutImage: (node: View | null) => void;
 }) {
@@ -280,9 +299,45 @@ function DrinkCardCell({
     : 1;
 
   const imageNodeRef = useRef<View | null>(null);
+  const pressableRef = useRef<View | null>(null);
+  // Reentrancy guard — both Pressable's synthetic onPress AND the native DOM
+  // listener route here, but only one navigation should fire per click.
+  const firingRef = useRef(false);
+
+  const fire = () => {
+    if (firingRef.current) return;
+    firingRef.current = true;
+    setTimeout(() => { firingRef.current = false; }, 100);
+    onPressNode(imageNodeRef.current ?? pressableRef.current);
+  };
+
+  // Native DOM click listener — RN Web's Pressable uses its own
+  // pointerdown/up event system rather than native `onclick`, and under
+  // specific post-transition conditions it appears to swallow the synthetic
+  // event on certain cells. Attaching a real DOM `click` listener via the
+  // pressable's ref guarantees the navigation fires regardless of what RN
+  // Web's event delegation does.
+  useEffect(() => {
+    const node = pressableRef.current as unknown as HTMLElement | null;
+    if (!node || typeof node.addEventListener !== "function") return;
+    const handler = () => {
+      console.log("[DrinkCardCell] native click", drink.id);
+      fire();
+    };
+    node.addEventListener("click", handler);
+    return () => node.removeEventListener("click", handler);
+    // We intentionally re-bind whenever the drink changes so closure stays
+    // current. `fire` is stable because it only reads refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drink.id]);
 
   return (
-    <Pressable style={styles.cell} onPress={onPress} hitSlop={4}>
+    <Pressable
+      ref={pressableRef as any}
+      style={styles.cell}
+      onPress={fire}
+      hitSlop={4}
+    >
       <Animated.View
         style={[styles.cardImageHolder, { opacity: isPressed ? pressOpacity : 1 }]}
       >
@@ -468,17 +523,16 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 8,
   },
-  grid: {
+  row: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    columnGap: space.gridGap,
-    rowGap: 8,
+    gap: space.gridGap,
+    marginBottom: 8,
   },
   cell: {
-    flexBasis: "47%",
-    flexGrow: 1,
-    flexShrink: 1,
-    maxWidth: "50%",
+    // flex: 1 in an explicit row container — each cell gets exactly half the
+    // row's remaining width after the gap. No risk of overflow, no calc
+    // strings, no flex-wrap quirks.
+    flex: 1,
     paddingTop: 8,
     paddingBottom: 16,
     alignItems: "center",
