@@ -14,7 +14,13 @@ function BopomofoFullscreenContent() {
   const drinkId = search.get("drink");
   const freezeId = search.get("freezeMorph");
   const freezeAt = parseFloat(search.get("p") ?? "");
-  const initialRoute = drinkId ? ({ name: "detail" as const, drinkId }) : undefined;
+  // Menu (drink list) is hidden for now while it's being rebuilt — the demo
+  // lands directly on the BA-LA Matcha customization page by default. Any
+  // explicit ?drink=<id> URL still overrides this fallback.
+  const initialRoute = {
+    name: "detail" as const,
+    drinkId: drinkId ?? "matcha-guava-latte",
+  };
   const freezeMorph = freezeId && Number.isFinite(freezeAt)
     ? { drinkId: freezeId, progress: freezeAt }
     : undefined;

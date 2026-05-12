@@ -139,18 +139,13 @@ export function AppDemoShell({ initialRoute, freezeMorph }: Props) {
     morphProgress.setValue(freezeMorph.progress);
   }, [freezeMorph, containerSize.width, destRect, morphProgress]);
 
+  // Menu is hidden for now — back exits the demo to the previous page in
+  // the browser history instead of returning to the (unfinished) menu.
   const onBack = useCallback(() => {
-    Animated.timing(popProgress, {
-      toValue: 1,
-      duration: motion.back.duration,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: false,
-    }).start(({ finished }) => {
-      if (!finished) return;
-      setRoute({ name: "menu" });
-      popProgress.setValue(0);
-    });
-  }, [popProgress]);
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      window.history.back();
+    }
+  }, []);
 
   const morphRoute = route.name === "morphing" ? route : null;
   const detailRoute = route.name === "detail" ? route : null;
