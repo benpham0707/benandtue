@@ -166,22 +166,15 @@ export function LayeredCrossSection({
     return { widths, heights, tops, topBuffer, stackH };
   }, [layers]);
 
-  // Scroll trigger synced to the diagram's natural visible-on-screen window.
-  // Cycle is mapped to the scroll range from "diagram comfortably in view"
-  // to "diagram about to leave the top of the viewport" — so the full
-  // matcha→milk→guava sequence plays out exactly while the user is looking
-  // at the section. No empty layout space, no animation fragments firing
-  // after the diagram has scrolled away.
-  //
-  // The section header (eyebrow / h2 / description) sits above the diagram
-  // inside the explore section, so the diagram itself is roughly viewportH*0.2
-  // below sectionAbsY. We offset the trigger accordingly.
-  const headerOffset = viewportH * 0.2;
-  const start = Math.max(0, sectionAbsY - viewportH * 0.6 + headerOffset);
-  const end = Math.max(
-    start + 1,
-    sectionAbsY + headerOffset + geom.stackH * 0.6,
-  );
+  // Scroll trigger synced to the diagram's actual viewing window. Cycle
+  // starts when the section's top reaches the top of the viewport (so the
+  // header eyebrow + h2 + description have just scrolled off and the
+  // diagram is sitting comfortably in the upper part of the viewport).
+  // Cycle ends ~0.7 viewports later — by which point the diagram has
+  // scrolled past viewport top. No empty layout, no early-fire while the
+  // section is still mostly below the screen.
+  const start = Math.max(0, sectionAbsY);
+  const end = Math.max(start + 1, sectionAbsY + viewportH * 0.7);
   const progress = scrollY.interpolate({
     inputRange: [start, end],
     outputRange: [0, 1],
@@ -303,9 +296,9 @@ export function LayeredCrossSection({
           });
           const centerY = geom.tops[i] + geom.heights[i] / 2 + geom.topBuffer;
           const zIndex = layers.length - i;
-          // Brush sizing: width sized to overshoot the callout text block;
-          // height follows the brush's natural aspect.
-          const brushW = 196;
+          // Brush sized to fit inside the actual callout column so it
+          // doesn't run off the right edge of the phone container.
+          const brushW = 158;
           const brushH = brushW / BRUSH_ASPECT;
           return (
             <Animated.View
@@ -330,13 +323,12 @@ export function LayeredCrossSection({
                     {
                       width: brushW,
                       height: brushH,
-                      // Shift left so the brush is centered on the
-                      // (roughly fixed-width) callout text block. The text
-                      // starts at the calloutText x=0 with paddingHorizontal
-                      // padding, so the brush needs to start a bit to the
-                      // left of x=0 to land its center under the text.
-                      marginLeft: -35,
-                      marginTop: -brushH / 2 + 17,
+                      // Brush sits flush with the callout column — start
+                      // a few pixels into the left so the leader line still
+                      // peeks out, and the right side never crosses the
+                      // container boundary.
+                      marginLeft: -23,
+                      marginTop: -brushH / 2 + 12,
                       opacity: brushOpacity,
                     },
                   ]}
@@ -351,9 +343,13 @@ export function LayeredCrossSection({
                 </Animated.View>
                 <View style={styles.calloutTextInner}>
                   {layer.eyebrow ? (
-                    <Text style={styles.eyebrow}>{layer.eyebrow}</Text>
+                    <Text style={styles.eyebrow} numberOfLines={1}>
+                      {layer.eyebrow}
+                    </Text>
                   ) : null}
-                  <Text style={styles.label}>{layer.label}</Text>
+                  <Text style={styles.label} numberOfLines={1}>
+                    {layer.label}
+                  </Text>
                 </View>
               </View>
             </Animated.View>
@@ -417,17 +413,19 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     fontFamily: fontFamily.body,
-    fontSize: type.calloutEyebrow.size,
-    fontWeight: type.calloutEyebrow.weight,
-    color: "#FFFFFF",
-    letterSpacing: type.calloutEyebrow.tracking,
-    lineHeight: type.calloutEyebrow.lineHeight,
+    fontSize: 6,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.85)",
+    letterSpacing: 0.4,
+    lineHeight: 8,
+    textTransform: "uppercase",
   },
   label: {
     fontFamily: fontFamily.body,
-    fontSize: type.callout.size,
-    fontWeight: type.callout.weight,
+    fontSize: 9.5,
+    fontWeight: "600",
     color: "#FFFFFF",
-    lineHeight: type.callout.lineHeight,
+    lineHeight: 11.5,
+    marginTop: 1,
   },
 });

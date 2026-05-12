@@ -360,10 +360,11 @@ export const DrinkDetail = forwardRef<DrinkDetailHandle, Props>(function DrinkDe
     : 0;
   const releaseEnd = releaseStart + 200;
 
-  // Scroll distance over which the cup rotates 360°. Spans the full
-  // visible-cup window (dock → stick → release) so the cup keeps spinning
-  // as the user scrolls all the way until it's off-screen.
-  const SPIN_DISTANCE = releaseDefined ? releaseEnd : 320;
+  // Scroll distance over which the cup rotates 360°. Completes exactly when
+  // the release begins — so the cup spins through dock + stick, then locks on
+  // its final frame and only translates away during release (no concurrent
+  // rotation + translation, which read as a bounce near the top of the frame).
+  const SPIN_DISTANCE = releaseDefined ? releaseStart : 320;
   spinConfigRef.current.start = SPIN_START;
   spinConfigRef.current.distance = SPIN_DISTANCE;
   spinConfigRef.current.frames = SPIN_FRAMES;
