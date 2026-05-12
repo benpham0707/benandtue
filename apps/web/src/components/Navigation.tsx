@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
@@ -14,6 +14,7 @@ const navLinks = [
 
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -89,13 +90,53 @@ export default function Navigation() {
 
         {/* Mobile Menu Button */}
         <motion.button
+          type="button"
+          aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen((v) => !v)}
           className="md:hidden relative w-8 h-8 flex flex-col justify-center items-center gap-1.5"
           whileTap={{ scale: 0.95 }}
         >
-          <span className="w-6 h-[1.5px] bg-white rounded-full" />
-          <span className="w-4 h-[1.5px] bg-white rounded-full" />
+          <span
+            className={`w-6 h-[1.5px] bg-white rounded-full transition-transform ${
+              mobileOpen ? "translate-y-[3px] rotate-45" : ""
+            }`}
+          />
+          <span
+            className={`h-[1.5px] bg-white rounded-full transition-all ${
+              mobileOpen ? "w-6 -translate-y-[4px] -rotate-45" : "w-4"
+            }`}
+          />
         </motion.button>
       </motion.nav>
+
+      {/* Mobile menu sheet */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="md:hidden mt-3 rounded-2xl bg-black/85 backdrop-blur-xl border border-white/10 overflow-hidden"
+          >
+            <ul className="flex flex-col py-2">
+              {navLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="block px-6 py-3 text-base text-white/80 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.header>
   );
 }
