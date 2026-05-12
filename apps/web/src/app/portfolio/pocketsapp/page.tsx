@@ -1,5 +1,7 @@
 "use client";
 
+import { PocketsAppDemoFrame } from "@/components/PocketsAppDemoFrame";
+
 // iPhone 14/15 logical ratio: 390 / 844 ≈ 0.462 (19.5:9). Same constants as
 // the bopomofo demo so the phone-viewport feel is consistent across the
 // portfolio.
@@ -36,17 +38,7 @@ export default function PocketsAppFullscreen() {
           overflow: "hidden",
         }}
       >
-        <iframe
-          src={IFRAME_SRC}
-          title="Pocket's Chocolates — live demo"
-          allow="camera; geolocation; clipboard-read; clipboard-write"
-          style={{
-            width: "100%",
-            height: "100%",
-            border: "none",
-            display: "block",
-          }}
-        />
+        <PocketsAppDemoFrame src={IFRAME_SRC} />
       </div>
     </main>
   );

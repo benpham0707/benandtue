@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import { PhoneFrame } from "@/components/PhoneFrame";
 import { BrowserFrame } from "@/components/BrowserFrame";
 import { DemoCredentials } from "@/components/DemoCredentials";
+import { PocketsAppDemoFrame } from "@/components/PocketsAppDemoFrame";
 import { ResponsiveScaler } from "@/components/ResponsiveScaler";
 
 const AppDemoShell = dynamic(
@@ -331,18 +332,7 @@ export default function PortfolioPage() {
                 style={{ transformStyle: "flat" }}
               >
                 <PhoneFrame width={340} height={736}>
-                  <iframe
-                    src={POCKETSAPP_DEMO_SRC}
-                    title="Pocket's App — live demo"
-                    allow="camera; geolocation; clipboard-read; clipboard-write"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      border: "none",
-                      display: "block",
-                      background: "#FAF8F5",
-                    }}
-                  />
+                  <PocketsAppDemoFrame src={POCKETSAPP_DEMO_SRC} />
                 </PhoneFrame>
               </div>
             </ResponsiveScaler>

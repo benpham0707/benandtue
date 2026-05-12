@@ -3,15 +3,19 @@
 # so it can be embedded as a live demo at /portfolio/pocketsapp/.
 #
 # Usage:
-#   scripts/build-pocketsapp-demo.sh                      (defaults to /pocketsapp-demo base)
-#   POCKETS_BASE=/benandtue/pocketsapp-demo scripts/build-pocketsapp-demo.sh
+#   scripts/build-pocketsapp-demo.sh                                 (defaults to /benandtue/pocketsapp-demo)
+#   POCKETS_BASE=/some-other-prefix/pocketsapp-demo scripts/build-pocketsapp-demo.sh
 #
 # Required: POCKETS_REPO env var or default location at ../pockets-app/PocketsApp.
 
 set -euo pipefail
 
 POCKETS_REPO="${POCKETS_REPO:-$HOME/pockets-app/PocketsApp}"
-POCKETS_BASE="${POCKETS_BASE:-/pocketsapp-demo}"
+# Default to the production-deploy prefix so the committed bundle works on
+# GitHub Pages out of the box. The Next.js dev server runs with the same
+# `/benandtue` basePath locked in (apps/web/next.config.ts), so the same
+# build also serves correctly at http://localhost:3000/benandtue/...
+POCKETS_BASE="${POCKETS_BASE:-/benandtue/pocketsapp-demo}"
 DEST_DIR="$(cd "$(dirname "$0")/.." && pwd)/apps/web/public/pocketsapp-demo"
 
 if [[ ! -d "$POCKETS_REPO" ]]; then

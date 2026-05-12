@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const repoName = "benandtue";
-const isGithubActions = process.env.GITHUB_ACTIONS === "true";
+// basePath is only applied in production (GitHub Pages deploy). In local
+// dev `next dev` serves routes at the natural URL (localhost:3000/portfolio/
+// etc.), which is what humans expect. The embedded pockets-app demo whose
+// internal asset paths are baked at build time WILL resolve only in
+// production builds — its iframe will load locally but its CSS/JS will
+// 404 in dev. That's an accepted trade-off for sane URLs everywhere else.
+const isProd = process.env.NODE_ENV === "production";
+const basePath = isProd ? `/${repoName}` : "";
 
 const transpiledPackages = [
   "app",
@@ -19,10 +26,11 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: isGithubActions ? `/${repoName}` : "",
-  assetPrefix: isGithubActions ? `/${repoName}/` : undefined,
+  // Only set basePath/assetPrefix when they're non-empty — Next.js treats
+  // empty string as invalid for these.
+  ...(basePath ? { basePath, assetPrefix: `${basePath}/` } : {}),
   env: {
-    NEXT_PUBLIC_BASE_PATH: isGithubActions ? `/${repoName}` : "",
+    NEXT_PUBLIC_BASE_PATH: basePath,
   },
   transpilePackages: transpiledPackages,
   turbopack: {
