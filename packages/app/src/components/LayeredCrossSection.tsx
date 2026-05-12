@@ -259,7 +259,7 @@ export function LayeredCrossSection({
               ]}
             >
               <Image
-                source={{ uri: assetPath(layer.src) }}
+                source={{ uri: layer.src }}
                 style={{
                   width: geom.widths[i],
                   height: geom.heights[i],
