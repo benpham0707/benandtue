@@ -113,7 +113,10 @@ export default function PortfolioPage() {
           </div>
 
           <div className="order-1 lg:order-2 flex items-center justify-center w-full">
-            <ResponsiveScaler width={418} height={872}>
+            {/* Same physical phone size as the Pockets App section below
+                (340×736 inner, 368×764 with bezel) so the two embeds sit
+                identically in the layout. */}
+            <ResponsiveScaler width={368} height={764}>
               <div
                 className="lg:[transform:perspective(1600px)_rotateY(-6deg)_rotateX(2deg)]"
                 style={{
@@ -125,7 +128,7 @@ export default function PortfolioPage() {
                   transformStyle: "flat",
                 }}
               >
-                <PhoneFrame>
+                <PhoneFrame width={340} height={736}>
                   <AppDemoShell />
                 </PhoneFrame>
               </div>

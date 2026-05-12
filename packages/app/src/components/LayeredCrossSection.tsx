@@ -9,6 +9,7 @@ import { Animated, Image, StyleSheet, Text, View } from "react-native";
 
 import { colors, fontFamily, type } from "../theme/tokens";
 import type { CrossSectionLayer } from "../types";
+import { assetPath } from "../utils/assetPath";
 
 type Props = {
   layers: CrossSectionLayer[];
@@ -67,11 +68,19 @@ const PEAKS = { matcha: 0.22, milk: 0.38, guava: 0.55 };
 const HALF_WIDTH = 0.12;
 const SAMPLES = 41;
 
+// Sticky-pin behavior: the diagram pins inside the viewport for this many
+// viewport-heights of scroll travel, letting the matcha→milk→guava cycle
+// play out slowly while the user keeps scrolling. Without this the section
+// is small and the cycle would burn through in a fraction of a screen.
+const STICKY_TRAVEL_VH = 1.5;
+// Where in the viewport the diagram is pinned during the sticky window.
+// 0 = top of viewport, 1 = bottom. 0.18 sits comfortably below the hero
+// chrome on mobile.
+const STICKY_PIN_VH = 0.18;
+
 // Brush-stroke backdrop behind each callout. Pre-keyed transparent PNG so it
 // composites cleanly over the explore section's beige bg without needing
 // mix-blend-mode (which RN doesn't support).
-import { assetPath } from "../utils/assetPath";
-
 const BRUSH_URI = assetPath("/bopomofo/brush-stroke-transparent.png");
 const BRUSH_ASPECT = 2172 / 724; // natural W/H of the trimmed brush
 
@@ -157,14 +166,26 @@ export function LayeredCrossSection({
     return { widths, heights, tops, topBuffer, stackH };
   }, [layers]);
 
-  // Map scrollY → 0..1 progress. Trigger range shifted ~0.4vh later so the
-  // cycle starts when the section is properly settled in the viewport,
-  // rather than firing while the diagram is still high on screen.
-  const start = Math.max(0, sectionAbsY - viewportH * 0.1);
-  const end = Math.max(start + 1, sectionAbsY + viewportH * 0.5);
+  // Sticky-pin scroll math. The diagram pins at viewport y = STICKY_PIN_VH
+  // and stays there for STICKY_TRAVEL_VH viewports of scroll. During that
+  // window the animation progress advances from 0 → 1, so the full
+  // matcha→milk→guava cycle plays out across the entire scroll dwell rather
+  // than burning through in half a screen.
+  const pinY = viewportH * STICKY_PIN_VH;
+  const stickyTravel = viewportH * STICKY_TRAVEL_VH;
+  const stickyStart = Math.max(0, sectionAbsY - pinY);
+  const stickyEnd = stickyStart + stickyTravel;
   const progress = scrollY.interpolate({
-    inputRange: [start, end],
+    inputRange: [stickyStart, stickyEnd],
     outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  // Pin offset: 0 before the section reaches its pin point, then tracks
+  // scroll so the diagram appears glued to viewport y = pinY for the
+  // duration of the sticky window, then releases.
+  const stickyTranslateY = scrollY.interpolate({
+    inputRange: [stickyStart, stickyEnd],
+    outputRange: [0, stickyTravel],
     extrapolate: "clamp",
   });
 
@@ -205,15 +226,25 @@ export function LayeredCrossSection({
     [layers.length],
   );
 
+  // Outer height takes the diagram's natural height plus the sticky travel
+  // — gives the user enough scroll runway to traverse the pinned animation.
+  const outerH = geom.stackH + stickyTravel;
+
   return (
-    <View style={styles.row}>
-      {/* Slice column */}
-      <View
-        style={[
-          styles.cupCol,
-          { width: SLICE_W + 24, height: geom.stackH },
-        ]}
+    <View style={{ height: outerH, overflow: "visible" }}>
+      <Animated.View
+        style={{
+          transform: [{ translateY: stickyTranslateY }],
+        }}
       >
+        <View style={styles.row}>
+          {/* Slice column */}
+          <View
+            style={[
+              styles.cupCol,
+              { width: SLICE_W + 24, height: geom.stackH },
+            ]}
+          >
         {layers.map((layer, i) => {
           const a = animated[i];
           const translateY = progress.interpolate({
@@ -339,7 +370,9 @@ export function LayeredCrossSection({
             </Animated.View>
           );
         })}
-      </View>
+          </View>
+        </View>
+      </Animated.View>
     </View>
   );
 }
