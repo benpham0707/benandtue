@@ -129,7 +129,9 @@ export default function PortfolioPage() {
                 }}
               >
                 <PhoneFrame width={340} height={736}>
-                  <AppDemoShell />
+                  <AppDemoShell
+                    initialRoute={{ name: "detail", drinkId: "matcha-guava-latte" }}
+                  />
                 </PhoneFrame>
               </div>
             </ResponsiveScaler>
