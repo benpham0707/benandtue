@@ -13,6 +13,7 @@ node_modules
 # build artifacts
 .next/
 out/
+out-deploy/
 build/
 dist/
 .turbo
